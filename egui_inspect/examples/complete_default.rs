@@ -11,7 +11,7 @@ macro_rules! generate_struct_tuple {
 				$ty,
 				#[inspect(range(min = 0., max = 12.0))]
 				$ty,
-				#[inspect(slider, range(min = 0., max = 12.0))]
+				#[inspect(slider, range(min = "-10.", max = 12.0))]
 				$ty,
 			)*
 		);

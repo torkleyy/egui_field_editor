@@ -52,7 +52,7 @@ pub(crate) fn try_handle_internal_path(
 }
 
 fn handle_number_path(field_name :TokenStream, field: &Field, attrs: &AttributeArgs, default_field_name:String) -> Option<TokenStream> {
-	print!("{} : {:?}",field_name, attrs);
+
 	let name = &field.ident;
 
 	let name_str = match &attrs.name {

@@ -53,23 +53,70 @@
 //! - `custom_func_mut` *(String)*: Use custom function for mut inspect (Evaluate the string as a function path)
 //!
 
+
+use egui::{Response, Ui, Widget};
 /// See also [EguiInspect]
 pub use egui_inspect_derive::*;
 
+pub struct EGuiInspector<'a, T : EguiInspect> {
+	obj: &'a mut T
+}
+impl<'a, T : EguiInspect> EGuiInspector<'a, T> {
+	pub fn new(obj: &'a mut T) -> Self {
+		Self { obj }
+	}
+	
+}
+impl<'a, T : EguiInspect> Widget for EGuiInspector<'a, T> {
+	fn ui(self, ui: &mut Ui) -> Response {
+		let available_width = ui.available_width();
+
+		ui.set_min_width(available_width); // 👈 force le contenu à prendre toute la largeur
+
+		ui.heading("Inspector");
+		egui::ScrollArea::vertical().show(ui, |ui| {
+			ui.set_min_width(available_width);
+			self.obj.inspect("", ui);
+		});
+		ui.response()
+	}
+}
+
 /// Base trait to automatically inspect structs
 pub trait EguiInspect {
-    fn inspect(&self, label: &str, ui: &mut egui::Ui);
-    fn inspect_mut(&mut self, label: &str, ui: &mut egui::Ui);
+	fn inspect(&mut self, label: &str, ui: &mut egui::Ui) {
+		self.inspect_with_custom_id(ui.next_auto_id(), label, ui);
+	}
+	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
 }
 
 pub trait InspectNumber {
-    fn inspect_with_slider(&mut self, label: &str, ui: &mut egui::Ui, min: f32, max: f32);
-    fn inspect_with_drag_value(&mut self, label: &str, ui: &mut egui::Ui);
+	fn inspect_with_slider(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui, min: f32, max: f32);
+	fn inspect_with_drag_value(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui, minmax: Option<(f32, f32)>);
 }
 
 pub trait InspectString {
-    fn inspect_mut_multiline(&mut self, label: &str, ui: &mut egui::Ui);
-    fn inspect_mut_singleline(&mut self, label: &str, ui: &mut egui::Ui);
+	fn inspect_multiline(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
+	fn inspect_singleline(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
+}
+pub trait InspectColor {
+	fn inspect_color(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
+}
+
+pub trait DefaultEguiInspect {
+	fn default_inspect(&mut self, label: &str, ui: &mut egui::Ui) {
+		self.default_inspect_with_custom_id(ui.next_auto_id(), label, ui);
+	}
+	fn default_inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
+}
+
+impl<T: DefaultEguiInspect> EguiInspect for T {
+	fn inspect(&mut self, label: &str, ui: &mut egui::Ui) {
+		self.default_inspect(label, ui);
+	}
+	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
+		self.default_inspect_with_custom_id(parent_id,label, ui);
+	}
 }
 
 pub mod base_type_inspect;

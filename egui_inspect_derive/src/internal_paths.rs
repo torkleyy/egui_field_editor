@@ -39,7 +39,6 @@ pub(crate) fn try_handle_internal_path(
 	if !path_is_internally_handled(path_str) {
 		return None;
 	}
-
 	match path_str.as_str() {
 		"f64" | "f32" | "u8" | "i8" | "u16" | "i16" | "u32" | "i32" | "u64" | "i64" => {
 			handle_number_path(field_name, field, attrs, default_field_name)
@@ -53,6 +52,7 @@ pub(crate) fn try_handle_internal_path(
 }
 
 fn handle_number_path(field_name :TokenStream, field: &Field, attrs: &AttributeArgs, default_field_name:String) -> Option<TokenStream> {
+	print!("{} : {:?}",field_name, attrs);
 	let name = &field.ident;
 
 	let name_str = match &attrs.name {

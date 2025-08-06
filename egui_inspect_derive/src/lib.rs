@@ -89,9 +89,28 @@ fn inspect_struct(data: &Data, _struct_name: &Ident) -> TokenStream {
 			Fields::Unnamed(ref fields) => {
 				let mut recurse = Vec::new();
 				for (i,f) in fields.unnamed.iter().enumerate() {
+					let attr;
+					match AttributeArgs::from_field(f) {
+						Ok(_attr) => {
+							attr=_attr;
+						}
+						Err(e) => {
+							let ident = &f.ident;
+							let msg = e.to_string();
+							return quote! {
+								#ident: {
+									compile_error!(#msg);
+								}
+							};
+						}
+					}
 					let tuple_index = Index::from(i);
 					let name = format!("Field {i}");
-					recurse.push(quote_spanned! { f.span() => egui_inspect::EguiInspect::inspect_with_custom_id(&mut self.#tuple_index, _parent_id.with(label), #name, ui);});
+					if let Some(ts) = internal_paths::try_handle_internal_path(quote!{&mut self.#tuple_index}, f, &attr, format!("Field {i}")) {
+						recurse.push(ts);
+					} else {
+						recurse.push(quote_spanned! { f.span() => egui_inspect::EguiInspect::inspect_with_custom_id(&mut self.#tuple_index, _parent_id.with(label), #name, ui);});
+					}
 				};
 
 				let result = quote_spanned! {
@@ -189,24 +208,14 @@ fn handle_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 					let fieldname = Ident::new(&fieldname, proc_macro2::Span::call_site());
 					fieldnames_list.push(quote!{#fieldname});
 
-					//let bindings_for_match = bindings.clone();
-    				if let Some(ts) = internal_paths::try_handle_internal_path(quote!{#fieldname}, f, &attr, format!("Field {i}")) {
-						//return quote! { #enum_name::#variant_name(#(#bindings_for_match),*) => #ts };
+					if let Some(ts) = internal_paths::try_handle_internal_path(quote!{#fieldname}, f, &attr, format!("Field {i}")) {
 						return ts;
 					}
 					quote! {
-						//#enum_name::#variant_name(#(#bindings_for_match),* ) => {
-							egui_inspect::EguiInspect::inspect_with_custom_id(#fieldname, _parent_id.with(label), label, ui);
-						//}
+						egui_inspect::EguiInspect::inspect_with_custom_id(#fieldname, _parent_id.with(label), label, ui);
 					}
 				});
-				/*let bindings_for_match = bindings.clone();
-				println!("{}", quote! {
-					#enum_name::#variant_name(#(#bindings_for_match),* ) => {
-						#(#recurse)*
-					}
-				});*/
-    			let bindings_for_match = bindings.clone();
+				let bindings_for_match = bindings.clone();
 				ui_match_arms.push(quote! {
 					#enum_name::#variant_name(#(#bindings_for_match),* ) => {
 						#(#recurse)*

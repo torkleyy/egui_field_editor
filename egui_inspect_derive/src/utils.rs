@@ -7,32 +7,33 @@ use syn::{Field, Type};
 use crate::AttributeArgs;
 
 pub fn get_path_str(type_path: &Type) -> Option<String> {
-    match type_path {
-        Path(type_path) => {
-            let ident = type_path
-                .path
-                .get_ident();
-            if let Some(name) = ident {
-                return Some(name.to_string());
-            }
-            return None;
-        }
-        Reference(type_ref) => get_path_str(&*type_ref.elem),
-        _ => Some("".to_string()),
-    }
+	match type_path {
+		Path(type_path) => {
+			let ident = type_path
+				.path
+				.get_ident();
+			ident.map(|name| name.to_string())
+		}
+		Reference(type_ref) => get_path_str(&type_ref.elem),
+		_ => Some("".to_string()),
+	}
 }
 
-pub(crate) fn get_default_function_call(field: &Field, mutable: bool, attrs: &AttributeArgs) -> TokenStream {
-    let name = &field.ident;
+pub(crate) fn get_default_function_call(field: &Field, attrs: &AttributeArgs, default_field_name:String) -> TokenStream {
+	let name = &field.ident;
 
-    let name_str = match &attrs.name {
-        Some(n) => n.clone(),
-        None => name.clone().unwrap().to_string(),
-    };
+	let name_str = match &attrs.name {
+		Some(n) => n.clone(),
+		None => {
+			if let Some(name) = name {
+				name.to_string()
+			} else {
+				default_field_name
+			}
+		},
+	};
 
-    return if mutable {
-        quote_spanned! {field.span() => {egui_inspect::EguiInspect::inspect_mut(&mut self.#name, &#name_str, ui);}}
-    } else {
-        quote_spanned! {field.span() => {egui_inspect::EguiInspect::inspect(&self.#name, &#name_str, ui);}}
-    };
+
+	quote_spanned! {field.span() => {egui_inspect::EguiInspect::inspect_with_custom_id(&mut self.#name, _parent_id.with(label), &#name_str, ui);}}
+
 }

@@ -1,29 +1,31 @@
 use std::ops::Add;
+use crate::EguiInspect;
 use crate::InspectNumber;
 use crate::InspectString;
-use egui::Checkbox;
-use egui::TextEdit;
 use egui::{Color32, Ui};
-
+use egui_flex::{item, Flex, FlexAlignContent};
 
 macro_rules! impl_inspect_number {
 	($($t:ty),+) => {
 		$(
 			impl crate::InspectNumber for $t {
 				fn inspect_with_slider(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui, min: f32, max: f32) {
-					ui.horizontal(|ui| {
-						ui.label(label.to_owned() + ":");
-						ui.add(egui::Slider::new(self, (min as $t)..=(max as $t)));
+					Flex::horizontal().w_full().align_content(FlexAlignContent::Start).show(ui, |ui| {
+						//ui.label(label.to_owned() + ":");
+						ui.add(item(), egui::Label::new(label));
+						ui.add(item().grow(2.0), egui::Slider::new(self, (min as $t)..=(max as $t)));
 					});
+					//<Self as EguiInspect>::add_
 				}
 				fn inspect_with_drag_value(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui, minmax: Option<(f32, f32)>) {
-					ui.horizontal(|ui| {
-						ui.label(label.to_owned() + ":");
+					Flex::horizontal().w_full().align_content(FlexAlignContent::Start).show(ui, |ui| {
+						//ui.label(label.to_owned() + ":");
+						ui.add(item(), egui::Label::new(label));
 						let mut editor=egui::DragValue::new(self);
 						if let Some(minmax) = minmax {
 							editor = editor.range((minmax.0 as $t)..=(minmax.1 as $t));
 						}
-						ui.add_enabled(true, editor);
+						ui.add(item().grow(2.0), editor);
 					});
 				}
 			}
@@ -100,43 +102,50 @@ impl crate::EguiInspect for String {
 
 impl crate::InspectString for String {
 	fn inspect_multiline(&mut self, _parent_id: egui::Id, label: &str, ui: &mut Ui) {
-		ui.horizontal(|ui| {
-			ui.label(label.to_owned() + ":");
+		/*ui.horizontal(|ui| {
+			ui.label(label.to_owned() + ":").on_hover_text("text2");
 			ui.add_enabled(true, TextEdit::multiline(self));
-		});
+		}).response.on_hover_text("text");*/
+		<Self as EguiInspect>::add_string_multiline(self, _parent_id, label, ui);
 	}
 
 	fn inspect_singleline(&mut self, _parent_id: egui::Id, label: &str, ui: &mut Ui) {
-		ui.horizontal(|ui| {
+		/*ui.horizontal(|ui| {
 			ui.label(label.to_owned() + ":");
 			ui.add_enabled(true, TextEdit::singleline(self));
-		});
+		}).response.on_hover_text("text").on_disabled_hover_text("disabled");*/
+		<Self as EguiInspect>::add_string_singleline(self, _parent_id, label, ui);
 	}
 }
 
 impl crate::EguiInspect for bool {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
-		ui.add_enabled(true, Checkbox::new(self, label));
+		//ui.add_enabled(true, Checkbox::new(self, label));
+		Self::add_bool(self, _parent_id, label, ui);
 	}
 }
 
 impl<T: crate::EguiInspect, const N: usize> crate::EguiInspect for [T; N] {
-	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, ui: &mut Ui) {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, ui: &mut Ui) {
+		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
+		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		egui::CollapsingHeader::new(label.to_string().add(format!("[{N}]").as_str())).show(ui, |ui| {
 			for (i, item) in self.iter_mut().enumerate() {
-				item.inspect_with_custom_id(parent_id.with(label), format!("Item {i}").as_str(), ui);
+				item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), ui);
 			}
 		});
 	}
 }
 
 impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
-	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, ui: &mut Ui) {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, ui: &mut Ui) {
+		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
+		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		ui.horizontal_top(|ui| {
-			egui::CollapsingHeader::new(label.to_string().add(format!("[{}]", self.len()).as_str())).id_salt(parent_id.with(label))
+			egui::CollapsingHeader::new(label.to_string().add(format!("[{}]", self.len()).as_str())).id_salt(id)
 				.show(ui, |ui| {
 				for (i, item) in self.iter_mut().enumerate() {
-					item.inspect_with_custom_id(parent_id.with(label), format!("Item {i}").as_str(), ui);
+					item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), ui);
 				}
 			});
 
@@ -155,10 +164,11 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 
 impl crate::EguiInspect for Color32 {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
-		ui.horizontal(|ui| {
+		/*ui.horizontal(|ui| {
 			ui.label(label.to_owned() + ":");
 			ui.color_edit_button_srgba(self);
-		});
+		});*/
+		Self::add_color(self, _parent_id, label, ui);
 	}
 }
 
@@ -169,10 +179,9 @@ impl crate::EguiInspect for Color32 {
 mod nalgebra_ui {
 	use egui::Color32;
 	use nalgebra_glm::*;
-	use std::ops::Deref;
-	use std::ops::DerefMut;
 	use crate::EguiInspect;
 	use crate::InspectColor;
+	use crate::MyColor32;
 
 	macro_rules! impl_only_numbers_struct_inspect {
 	($Type:ident, [$($field:ident),+]) => {
@@ -191,20 +200,6 @@ mod nalgebra_ui {
 		}
 	};
 }
-	#[derive(Clone, Debug, Copy)]
-	struct MyColor32(Color32);
-	impl Deref for MyColor32 {
-		type Target = Color32;
-
-		fn deref(&self) -> &Self::Target {
-			&self.0
-		}
-	}
-	impl DerefMut for MyColor32 {
-		fn deref_mut(&mut self) -> &mut Self::Target {
-			&mut self.0
-		}
-	}
 
 	impl_only_numbers_struct_inspect!(Vec2, [x, y]);
 	impl_only_numbers_struct_inspect!(Vec3, [x, y, z]);
@@ -241,14 +236,15 @@ mod nalgebra_ui {
 
 	impl InspectColor for Vec3 {
 		fn inspect_color(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
-			ui.horizontal(|ui| {
+			/*ui.horizontal(|ui| {
 				ui.label(format!("{label}:"));
 				let color: MyColor32 = (*self).into();
 				let mut array = color.to_normalized_gamma_f32()[0..3].try_into().unwrap();
 				if ui.color_edit_button_rgb(&mut array).changed() {
 					*self = array.into();
 				}
-			});
+			});*/
+			Self::add_vec3_color(self, label, ui);
 		}
 	}
 
@@ -266,13 +262,14 @@ mod nalgebra_ui {
 
 	impl InspectColor for Vec4 {
 		fn inspect_color(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
-			ui.horizontal(|ui| {
+			/*ui.horizontal(|ui| {
 				ui.label(format!("{label}:"));
 				let mut color: MyColor32 = (*self).into();
 				if ui.color_edit_button_srgba(&mut color).changed() {
 					*self = color.into();
 				}
-			});
+			});*/
+			Self::add_vec4_color(self, label, ui);
 		}
 	}
 
@@ -291,14 +288,15 @@ mod nalgebra_ui {
 
 	impl InspectColor for U8Vec3 {
 		fn inspect_color(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
-			ui.horizontal(|ui| {
+			/*ui.horizontal(|ui| {
 				ui.label(format!("{label}:"));
 				let color: MyColor32 = (*self).into();
 				let mut array = color.to_array()[0..3].try_into().unwrap();
 				if ui.color_edit_button_srgb(&mut array).changed() {
 					*self = array.into();
 				}
-			});
+			});*/
+			Self::add_vec3u8_color(self, label, ui);
 		}
 	}
 
@@ -316,13 +314,14 @@ mod nalgebra_ui {
 
 	impl InspectColor for U8Vec4 {
 		fn inspect_color(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
-			ui.horizontal(|ui| {
+			/*ui.horizontal(|ui| {
 				ui.label(format!("{label}:"));
 				let mut color: MyColor32 = (*self).into();
 				if ui.color_edit_button_srgba(&mut color).changed() {
 					*self = color.into();
 				}
-			});
+			});*/
+			Self::add_vec4u8_color(self, label, ui);
 		}
 	}
 

@@ -1,12 +1,11 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
-	parse_macro_input, parse_quote, spanned::Spanned, Data, DataEnum, DeriveInput, Fields, FieldsNamed, GenericParam, Generics, Index
+	parse_macro_input, parse_quote, spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, GenericParam, Generics, Index
 };
 
-use darling::{FromField, FromMeta};
+use darling::{FromField, FromMeta, FromVariant};
 
-mod internal_paths;
 mod utils;
 
 #[derive(Debug, FromMeta)]
@@ -16,7 +15,7 @@ struct Range {
 	#[darling(default)]
 	max: f32,
 }
-#[derive(Debug, FromField)]
+#[derive(Debug, FromField, FromVariant)]
 #[darling(attributes(inspect), default)]
 struct AttributeArgs {
 	/// Name of the field to be displayed on UI labels
@@ -32,7 +31,9 @@ struct AttributeArgs {
 	/// Display mut vec3/vec4 with color
 	color: bool,
 	/// Min/Max values for numbers
-	range: Option<Range>
+	range: Option<Range>,
+	/// Tooltip for the field
+	tooltip: Option<String>
 }
 
 impl Default for AttributeArgs {
@@ -44,7 +45,8 @@ impl Default for AttributeArgs {
 			slider: false,
 			multiline: false,
 			color: false,
-			range: None 
+			range: None ,
+			tooltip:None
 		}
 	}
 }
@@ -58,12 +60,14 @@ pub fn derive_egui_inspect(input: proc_macro::TokenStream) -> proc_macro::TokenS
 	let generics = add_trait_bounds(input.generics);
 	let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-	let inspect_mut = inspect_struct(&input.data, &name);
+	let inspect_code = get_code_for_data(&input.data, &name);
 
 	let expanded = quote! {
-		impl #impl_generics egui_inspect::EguiInspect for #name #ty_generics #where_clause {
-			fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
-				#inspect_mut
+		impl #impl_generics egui_inspect::DefaultEguiInspect for #name #ty_generics #where_clause {
+			fn default_inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
+				let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
+				let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
+				#inspect_code
 			}
 		}
 	};
@@ -82,227 +86,78 @@ fn add_trait_bounds(mut generics: Generics) -> Generics {
 	generics
 }
 
-fn inspect_struct(data: &Data, _struct_name: &Ident) -> TokenStream {
+fn get_code_for_data(data: &Data, struct_name: &Ident) -> TokenStream {
 	let ts = match *data {
-		Data::Struct(ref data) => match data.fields {
-			Fields::Named(ref fields) => handle_named_fields(fields),
-			Fields::Unnamed(ref fields) => {
-				let mut recurse = Vec::new();
-				for (i,f) in fields.unnamed.iter().enumerate() {
-					let attr;
-					match AttributeArgs::from_field(f) {
-						Ok(_attr) => {
-							attr=_attr;
-						}
-						Err(e) => {
-							let ident = &f.ident;
-							let msg = e.to_string();
-							return quote! {
-								#ident: {
-									compile_error!(#msg);
-								}
-							};
-						}
-					}
-					let tuple_index = Index::from(i);
-					let name = format!("Field {i}");
-					if let Some(ts) = internal_paths::try_handle_internal_path(quote!{&mut self.#tuple_index}, f, &attr, format!("Field {i}")) {
-						recurse.push(ts);
-					} else {
-						recurse.push(quote_spanned! { f.span() => egui_inspect::EguiInspect::inspect_with_custom_id(&mut self.#tuple_index, _parent_id.with(label), #name, ui);});
-					}
-				};
-
-				let result = quote_spanned! {
-					fields.span() => {
-						ui.strong(label);
-						#(#recurse)*
-					}
-				};
-				result
-			},
-			Fields::Unit => quote! {}
-		},
-		Data::Enum(ref an_enum) => handle_enum(&_struct_name, &an_enum),
+		Data::Struct(ref data) => get_code_for_struct(&data),
+		Data::Enum(ref an_enum) => get_code_for_enum(&struct_name, &an_enum),
 		Data::Union(_) => unimplemented!("Unions are not supported (would need unsafe code)"),
 	};
 	ts
 }
 
-
-fn handle_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
+fn get_code_for_struct(data: &DataStruct)  -> TokenStream {
+	match data.fields {
+		Fields::Named(ref fields) => get_code_for_struct_named_fields(fields),
+		Fields::Unnamed(ref fields) => get_code_for_struct_unnamed_fields(fields),
+		Fields::Unit => quote! {}
+	}
+}
+fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 	let mut selected_text_arms = Vec::new();
 	let mut selectable_blocks = Vec::new();
 	let mut ui_match_arms = Vec::new();
+	let mut has_hidden = false;
 
 	for variant in &data_enum.variants {
 		let variant_name = &variant.ident;
 		let label = variant_name.to_string();
-
-		match &variant.fields {
-			Fields::Unit => {
-				selected_text_arms.push(quote! {
-					#enum_name::#variant_name => #label,
-				});
-
-				selectable_blocks.push(quote! {
-					if ui.selectable_value(self, #enum_name::#variant_name, #label).changed() {
-						*self = #enum_name::#variant_name;
-					}
-				});
-
-
-				ui_match_arms.push(quote! {
-					#enum_name::#variant_name => {
-						// nothing to edit
-					}
-				});
+		let attr;
+		match AttributeArgs::from_variant(variant) {
+			Ok(_attr) => {
+				attr=_attr;
 			}
-
-			Fields::Unnamed(fields) => {
-				let default_value = if fields.unnamed.len() == 1 {
-					quote! { Default::default() }
-				} else {
-					let defaults = std::iter::repeat(quote! { Default::default() })
-						.take(fields.unnamed.len());
-					quote! {  #(#defaults),*  }
+			Err(e) => {
+				let ident = &variant.ident;
+				let msg = e.to_string();
+				return quote! {
+					#ident: {
+						compile_error!(#msg);
+					}
 				};
-				let bindings_ignore = (0..fields.unnamed.len())
-					.map(|_i| Ident::new(&"_", proc_macro2::Span::call_site()));
-				selected_text_arms.push(quote! {
-					#enum_name::#variant_name(#(#bindings_ignore),*) => #label,
-				});
-
-				selectable_blocks.push(quote! {
-					if ui.selectable_value(self, #enum_name::#variant_name(#default_value), #label).changed() {
-						*self = #enum_name::#variant_name(#default_value);
-					}
-				});
-				let mut has_hidden = false;
-				let mut fieldnames_list = vec![];
-				let bindings = (0..fields.unnamed.len())
-					.map(|i| Ident::new(&format!("field{}", i), proc_macro2::Span::call_site()));
-				
-				let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
-					let attr;
-					match AttributeArgs::from_field(f) {
-						Ok(_attr) => {
-							attr=_attr;
-						}
-						Err(e) => {
-							let ident = &f.ident;
-							let msg = e.to_string();
-							return quote! {
-								#ident: {
-									compile_error!(#msg);
-								}
-							};
-						}
-					}
-					if attr.hidden {
-						has_hidden = true;
-						return quote!();
-					}
-					
-					let fieldname = format!("field{}", i);
-					let fieldname = Ident::new(&fieldname, proc_macro2::Span::call_site());
-					fieldnames_list.push(quote!{#fieldname});
-
-					if let Some(ts) = internal_paths::try_handle_internal_path(quote!{#fieldname}, f, &attr, format!("Field {i}")) {
-						return ts;
-					}
-					quote! {
-						egui_inspect::EguiInspect::inspect_with_custom_id(#fieldname, _parent_id.with(label), label, ui);
-					}
-				});
-				let bindings_for_match = bindings.clone();
-				ui_match_arms.push(quote! {
-					#enum_name::#variant_name(#(#bindings_for_match),* ) => {
-						#(#recurse)*
-					}
-				});
-				if has_hidden {
-					ui_match_arms.push(quote! {_ => {} });
-				}
 			}
-
-			Fields::Named(fields) => {
-				let mut field_bindings = Vec::new();
-				let mut inspect_calls = Vec::new();
-				let mut has_hidden = false;
-				
-				let bindings_ignore: Vec<TokenStream> = fields.named.iter()
-					.map(|f| {
-						let name = f.ident.clone();
-						quote!{#name : _ }
-					}
-				).collect();
-				selected_text_arms.push(quote! {
-					#enum_name::#variant_name{#(#bindings_ignore),*} => #label,
-				});
-				
-				let defaults = fields.named.iter().filter_map(|field| {
-					let name = field.ident.as_ref().unwrap(); // ignore les champs sans identifiant
-					Some(quote! { #name: Default::default() })
-				}).collect::<Vec<_>>();
-				let default_value = quote! {  #(#defaults),* };
-
-				selectable_blocks.push(quote! {
-					if ui.selectable_value(self, #enum_name::#variant_name{#default_value}, #label).changed() {
-						*self = #enum_name::#variant_name { #default_value };
-					}
-				});
-
-				for field in &fields.named {
-					let field_name = field.ident.as_ref().unwrap();
-					match AttributeArgs::from_field(field) {
-						Ok(attr) => {
-							if attr.hidden {
-								has_hidden = true;
-								continue;
-							}
-
-							inspect_calls.push(quote! {
-								egui_inspect::EguiInspect::inspect_with_custom_id(
-									#field_name,
-									_parent_id.with(stringify!(#field_name)),
-									stringify!(#field_name),
-									ui
-								);
-							});
-						}
-						Err(e) => {
-							let msg = e.to_string();
-							inspect_calls.push(quote! {
-								compile_error!(#msg);
-							});
-						}
-					}
-					field_bindings.push(field_name);
-				}
-
-				ui_match_arms.push(quote! {
-					#enum_name::#variant_name { #( #field_bindings ),* } => {
-						#( #inspect_calls )*
-					}
-				});
-
-				if has_hidden {
-					ui_match_arms.push(quote! { _ => {} });
-				}
-			}
+		}
+		if attr.hidden {
+			has_hidden = true;
+			continue;
+		}
+		match &variant.fields {
+			Fields::Unit => get_code_for_unit_variant(enum_name, variant_name, label, &mut selected_text_arms, &mut selectable_blocks, &mut ui_match_arms),
+			Fields::Unnamed(fields) => get_code_for_unamed_variant(enum_name, variant_name, label, fields, &mut selected_text_arms, &mut selectable_blocks, &mut ui_match_arms),
+			Fields::Named(fields) => get_code_for_named_variant(enum_name, variant_name, label, fields, &mut selected_text_arms, &mut selectable_blocks, &mut ui_match_arms)
 
 		}
+	}
+	
+	if has_hidden {
+		selected_text_arms.push(quote!{_ => {""}});
+		ui_match_arms.push(quote! {_ => {} });
 	}
 
 	quote_spanned! {
 		enum_name.span() => {
-			egui::ComboBox::from_id_salt(ui.next_auto_id())
-				.selected_text(match self {
-					#(#selected_text_arms)*
-				})
-				.show_ui(ui, |ui| {
-					#(#selectable_blocks)*
+				let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
+				//TODO: find a way to use it (if only Unit variants) or don't declare it if not needed
+				#[allow(unused_variables)]
+				let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
+				ui.horizontal(|ui| {
+					ui.label(label);
+					egui::ComboBox::from_id_salt(id)
+					.selected_text(match self {
+						#(#selected_text_arms)*
+					})
+					.show_ui(ui, |ui| {
+						#(#selectable_blocks)*
+					});
 				});
 
 			match self {
@@ -312,36 +167,231 @@ fn handle_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 	}
 }
 
-fn handle_named_fields(fields: &FieldsNamed) -> TokenStream {
+fn get_code_for_struct_named_fields(fields: &FieldsNamed) -> TokenStream {
 	let recurse = fields.named.iter().map(|f| {
 		let attrs;
-					match AttributeArgs::from_field(f) {
-						Ok(_attr) => {
-							attrs=_attr;
-						}
-						Err(e) => {
-							let ident = &f.ident;
-							let msg = e.to_string();
-							return quote_spanned! { ident.span() => {
-									compile_error!(#msg);
-								}
-							};
-						}
+		match AttributeArgs::from_field(f) {
+			Ok(_attr) => {
+				attrs=_attr;
+			}
+			Err(e) => {
+				let ident = &f.ident;
+				let msg = e.to_string();
+				return quote_spanned! { ident.span() => {
+						compile_error!(#msg);
 					}
+				};
+			}
+		}
 		if attrs.hidden {
 			return quote!();
 		}
 		let name = &f.ident;
-		if let Some(ts) = internal_paths::try_handle_internal_path(quote!{&mut self.#name}, f, &attrs,"".into()) {
-			return ts;
-		}
 
-		utils::get_default_function_call(f, &attrs, "".into())
+		utils::get_function_call(quote!{&mut self.#name}, f, &attrs, "".into())
 	});
 	quote_spanned! {
 		fields.span() => {
-			ui.strong(label);
-			#(#recurse)*
+			let mut add_content=|ui:&mut egui::Ui| {
+				#(#recurse)*
+			};
+			if !label.is_empty() {
+				//ui.strong(label);
+				ui.collapsing(label, add_content);
+			} else {
+				add_content(ui);
+			}
 		}
 	}
+}
+fn get_code_for_struct_unnamed_fields(fields: &FieldsUnnamed) -> TokenStream {
+	let mut recurse = Vec::new();
+	for (i,f) in fields.unnamed.iter().enumerate() {
+		let attr;
+		match AttributeArgs::from_field(f) {
+			Ok(_attr) => {
+				attr=_attr;
+			}
+			Err(e) => {
+				let ident = &f.ident;
+				let msg = e.to_string();
+				return quote! {
+					#ident: {
+						compile_error!(#msg);
+					}
+				};
+			}
+		}
+		let tuple_index = Index::from(i);
+		recurse.push(utils::get_function_call(quote!{&mut self.#tuple_index}, f, &attr, format!("Field {i}")))
+	};
+
+	let result = quote_spanned! {
+		fields.span() => {
+			let mut add_content=|ui:&mut egui::Ui| {
+				#(#recurse)*
+			};
+			if !label.is_empty() {
+				ui.collapsing(label, add_content);
+			} else {
+				add_content(ui);
+			}
+		}
+	};
+	result
+}
+
+fn get_code_for_unit_variant(
+		enum_name: &Ident,
+		variant_name: &Ident,
+		label:String,
+		selected_text_arms:&mut Vec<TokenStream>,
+		selectable_blocks:&mut Vec<TokenStream>,
+		ui_match_arms:&mut Vec<TokenStream>) {
+	selected_text_arms.push(quote! {
+		#enum_name::#variant_name => #label,
+	});
+
+	selectable_blocks.push(quote! {
+		if ui.selectable_value(self, #enum_name::#variant_name, #label).changed() {
+			*self = #enum_name::#variant_name;
+		}
+	});
+
+
+	ui_match_arms.push(quote! {
+		#enum_name::#variant_name => {
+			// nothing to edit
+		}
+	});
+}
+
+fn get_code_for_unamed_variant(
+	enum_name: &Ident,
+	variant_name: &Ident,
+	label:String,
+	fields : &FieldsUnnamed,
+	selected_text_arms:&mut Vec<TokenStream>,
+	selectable_blocks:&mut Vec<TokenStream>,
+	ui_match_arms:&mut Vec<TokenStream>) {
+
+	let default_value = if fields.unnamed.len() == 1 {
+		quote! { Default::default() }
+	} else {
+		let defaults = std::iter::repeat(quote! { Default::default() })
+			.take(fields.unnamed.len());
+		quote! {  #(#defaults),*  }
+	};
+	let bindings_ignore = (0..fields.unnamed.len())
+		.map(|_i| Ident::new(&"_", proc_macro2::Span::call_site()));
+	selected_text_arms.push(quote! {
+		#enum_name::#variant_name(#(#bindings_ignore),*) => #label,
+	});
+	
+	selectable_blocks.push(quote! {
+		if ui.selectable_value(self, #enum_name::#variant_name(#default_value), #label).changed() {
+			*self = #enum_name::#variant_name(#default_value);
+		}
+	});
+	let mut fieldnames_list = vec![];
+	let bindings = (0..fields.unnamed.len())
+		.map(|i| Ident::new(&format!("field{}", i), proc_macro2::Span::call_site()));
+	
+	let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
+		let attr;
+		match AttributeArgs::from_field(f) {
+			Ok(_attr) => {
+				attr=_attr;
+			}
+			Err(e) => {
+				let ident = &f.ident;
+				let msg = e.to_string();
+				return quote! {
+					#ident: {
+						compile_error!(#msg);
+					}
+				};
+			}
+		}
+		if attr.hidden {
+			return quote!();
+		}
+		
+		let fieldname = format!("field{}", i);
+		let fieldname = Ident::new(&fieldname, proc_macro2::Span::call_site());
+		fieldnames_list.push(quote!{#fieldname});
+
+		utils::get_function_call(quote!{#fieldname}, f, &attr, format!("Field {i}"))
+	});
+	let bindings_for_match = bindings.clone();
+	ui_match_arms.push(quote! {
+		#enum_name::#variant_name(#(#bindings_for_match),* ) => {
+			ui.indent(id, |ui| {
+				#(#recurse)*
+			});
+		}
+	});
+}
+
+fn get_code_for_named_variant(
+		enum_name: &Ident,
+		variant_name: &Ident,
+		label:String,
+		fields : &FieldsNamed,
+		selected_text_arms:&mut Vec<TokenStream>,
+		selectable_blocks:&mut Vec<TokenStream>,
+		ui_match_arms:&mut Vec<TokenStream>) {
+
+	let mut field_bindings = Vec::new();
+	let mut inspect_calls = Vec::new();
+	
+	let bindings_ignore: Vec<TokenStream> = fields.named.iter()
+		.map(|f| {
+			let name = f.ident.clone();
+			quote!{#name : _ }
+		}
+	).collect();
+	selected_text_arms.push(quote! {
+		#enum_name::#variant_name{#(#bindings_ignore),*} => #label,
+	});
+	
+	let defaults = fields.named.iter().filter_map(|field| {
+		let name = field.ident.as_ref().unwrap(); // ignore les champs sans identifiant
+		Some(quote! { #name: Default::default() })
+	}).collect::<Vec<_>>();
+	let default_value = quote! {  #(#defaults),* };
+
+	selectable_blocks.push(quote! {
+		if ui.selectable_value(self, #enum_name::#variant_name{#default_value}, #label).changed() {
+			*self = #enum_name::#variant_name { #default_value };
+		}
+	});
+
+	for f in &fields.named {
+		let fieldname = f.ident.as_ref().unwrap();
+		match AttributeArgs::from_field(f) {
+			Ok(attr) => {
+				if attr.hidden {
+					continue;
+				}
+
+				inspect_calls.push(utils::get_function_call(quote!{#fieldname}, f, &attr, "".into()));
+			}
+			Err(e) => {
+				let msg = e.to_string();
+				inspect_calls.push(quote! {
+					compile_error!(#msg);
+				});
+			}
+		}
+		field_bindings.push(fieldname);
+	}
+
+	ui_match_arms.push(quote! {
+		#enum_name::#variant_name { #( #field_bindings ),* } => {
+			ui.indent(id, |ui| {
+				#( #inspect_calls )*
+			});
+		}
+	});
 }

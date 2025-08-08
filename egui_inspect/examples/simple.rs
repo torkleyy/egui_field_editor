@@ -1,6 +1,7 @@
 
 
-use egui_inspect::{DefaultEguiInspect, EGuiInspector};
+use egui::TextEdit;
+use egui_inspect::{DefaultEguiInspect, EguiInspector};
 
 use eframe::egui;
 
@@ -14,7 +15,7 @@ pub struct TestData {
 	pub data: Vec<TestData>,
 	#[inspect(read_only=false, hidden=false)]
 	pub f32:f32,
-	#[inspect(multiline=true)]
+	//#[inspect(multiline=true)]
 	pub f32_2:f32,
 	myenum:MyEnum
 }
@@ -23,7 +24,7 @@ pub enum MyEnum {
 	#[default]
 	Item1,
 	Item2(
-		#[inspect(slider)]
+		#[inspect(slider, range(min=1.,max=12.))]
 		u8
 	),
 	Item3(u8, u16),
@@ -52,8 +53,14 @@ struct MyApp {
 
 impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+		let mut code = include_str!("simple.rs");
+		egui::SidePanel::right("right_panel").show(ctx, |ui| {
+			ui.add(EguiInspector::new(self));
+		});
 		egui::CentralPanel::default().show(ctx, |ui| {
-			ui.add(EGuiInspector::new(self));
+			egui::ScrollArea::vertical().id_salt("code_scrolling").show(ui, |ui| {
+				ui.add_sized(ui.available_size(), TextEdit::multiline(&mut code).code_editor());
+			});
 		});
 	}
 }

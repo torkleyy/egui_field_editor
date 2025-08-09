@@ -62,7 +62,6 @@ impl<T: crate::EguiInspect, const N: usize> crate::EguiInspect for [T; N] {
 	}
 }
 
-// In order to use the index as id we need to implement DragDropItem for a wrapper struct
 struct EnumeratedItem<T> {
 	item: T,
 	index: usize,
@@ -94,8 +93,6 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 				.id_salt(id)
 				.show(ui, |ui| {
 					let response = egui_dnd::dnd(ui, "dnd_example")
-					// Since egui_dnd's animations rely on the ids not
-					// changing after the drag finished we need to disable animations
 					.with_animation_time(0.0)
 					.show(
 						self
@@ -115,9 +112,6 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 							});
 						},
 					);
-
-				// Since the item id may not change while a drag is ongoing we need to wait
-				// until the drag is finished before updating the items
 				if response.is_drag_finished() {
 					response.update_vec(self);
 				}
@@ -136,67 +130,14 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 			});
 		});
 	}
-	
-	fn inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-				self.inspect_with_custom_id(egui::Id::NULL, label, tooltip, read_only, ui);
-			}
+
 }
 
-/*
-impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
-	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui) {
-		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
-		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
-		ui.horizontal_top(|ui| {
-			egui::CollapsingHeader::new(label.to_string().add(format!("[{}]", self.len()).as_str())).id_salt(id)
-				.show(ui, |ui| {
-				for (i, item) in self.iter_mut().enumerate() {
-					item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), tooltip, read_only, ui);
-				}
-			});
-		});
-		ui.add_enabled_ui(!read_only, |ui| {
-			ui.horizontal_top(|ui| {
-				ui.add_space(ui.available_width() - 50.);
-				if ui.button("+").clicked() {
-					self.push(T::default());
-				}
-
-				if ui.button("-").clicked() {
-					self.pop();
-				}
-			});
-		});
-	}
-}
-*/
 impl crate::EguiInspect for Color32 {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 		crate::add_color(self, label, tooltip, read_only, ui);
 	}
 }
-
-/*fn custom_collapsing(ui: &mut Ui, selected: &mut String, options: &[String]) {
-	let id = ui.make_persistent_id("custom_collapsing");
-	let mut state = egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true);
-
-	state.show_header(ui, |ui| {
-		ui.horizontal(|ui| {
-			ui.label("Options:");
-			egui::ComboBox::from_id_salt("combo_in_header")
-				.selected_text(selected.clone())
-				.show_ui(ui, |ui| {
-					for option in options {
-						ui.selectable_value(selected, option.clone(), option);
-					}
-				});
-		});
-	});
-
-	state.show_body_unindented(ui, |ui| {
-		ui.label("Contenu du collapsing");
-	});
-}*/
 
 impl<T : EguiInspect> crate::EguiInspect for Option<T>
 	where T : Default+PartialEq {

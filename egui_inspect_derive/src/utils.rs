@@ -66,8 +66,7 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 			let ty = proc_macro2::Ident::new(&get_path_str(&field.ty).unwrap(), proc_macro2::Span::call_site()); 
 			return quote_spanned! {field.span() => {
 					ui.scope(|ui| {
-						//egui_inspect::InspectNumber::inspect_with_slider(#field_access, _parent_id, &#name_str, ui, #min, #max);
-						<Self as egui_inspect::EguiInspect>::add_number_slider(#field_access, &#name_str, #tooltip, read_only || #read_only, #min as #ty, #max as #ty, ui);
+						egui_inspect::add_number_slider(#field_access, &#name_str, #tooltip, read_only || #read_only, #min as #ty, #max as #ty, ui);
 					});
 				}
 			};
@@ -80,7 +79,7 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 		let ty = proc_macro2::Ident::new(&get_path_str(&field.ty).unwrap(), proc_macro2::Span::call_site()); 
 		return quote_spanned! {field.span() => {
 				ui.scope(|ui| {
-					<Self as egui_inspect::EguiInspect>::add_number(#field_access, &#name_str, #tooltip, read_only || #read_only, Some((#min as #ty, #max as #ty)), ui);
+					egui_inspect::add_number(#field_access, &#name_str, #tooltip, read_only || #read_only, Some((#min as #ty, #max as #ty)), ui);
 				});
 			}
 		};
@@ -89,7 +88,7 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 		return quote_spanned! {
 			field.span() => {
 				ui.scope(|ui| {
-					<Self as egui_inspect::EguiInspect>::add_string_multiline(#field_access, &#name_str, #tooltip, read_only || #read_only, #nb_lines, ui);
+					egui_inspect::add_string_multiline(#field_access, &#name_str, #tooltip, read_only || #read_only, #nb_lines, ui);
 				});
 			}
 		};
@@ -97,7 +96,7 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 		return quote_spanned! {field.span() => {
 				ui.scope(|ui| {
 					//egui_inspect::InspectColor::inspect_color(#field_access, _parent_id, &#name_str, ui);
-					<Self as egui_inspect::EguiInspect>::add_color(#field_access, &#name_str, #tooltip, read_only || #read_only, ui);
+					egui_inspect::add_color(#field_access, &#name_str, #tooltip, read_only || #read_only, ui);
 				});
 			}
 		};

@@ -4,11 +4,11 @@ use egui::TextEdit;
 use nalgebra_glm::*;
 
 
-use egui_inspect::{DefaultEguiInspect, EguiInspector};
+use egui_inspect::{EguiInspect, EguiInspector};
 
 use eframe::egui;
 
-#[derive(DefaultEguiInspect, Default, PartialEq)]
+#[derive(EguiInspect, Default, PartialEq)]
 pub enum TestEnum {
 	#[default]
 	None,
@@ -100,7 +100,7 @@ pub enum TestEnum {
 		vec4u8: U8Vec4,
 	},
 }
-#[derive(DefaultEguiInspect, Default)]
+#[derive(EguiInspect, Default)]
 pub struct TestNamedStructColors {
 	#[inspect(color)]
 	pub vec3: Vec3,
@@ -112,7 +112,7 @@ pub struct TestNamedStructColors {
 	pub vec4u8: U8Vec4,
 }
 
-#[derive(DefaultEguiInspect, Default)]
+#[derive(EguiInspect, Default)]
 pub struct TestNamedStructVectors {
 	pub vec2: Vec2,
 	pub vec3: Vec3,
@@ -146,7 +146,7 @@ pub struct TestNamedStructVectors {
 	pub vec4i64: I64Vec4,
 }
 
-#[derive(DefaultEguiInspect, Default)]
+#[derive(EguiInspect, Default)]
 pub struct TestTupleStructColors(
 	#[inspect(color)]
 	pub Vec3,
@@ -158,7 +158,7 @@ pub struct TestTupleStructColors(
 	pub U8Vec4,
 );
 
-#[derive(DefaultEguiInspect, Default)]
+#[derive(EguiInspect, Default)]
 pub struct TestTupleStructVectors(
 	pub Vec2,
 	pub Vec3,
@@ -194,7 +194,7 @@ pub struct TestTupleStructVectors(
 
 
 
-#[derive(Default, DefaultEguiInspect)]
+#[derive(Default, EguiInspect)]
 struct MyApp {
 	test_named_vectors:TestNamedStructVectors,
 	test_named_colors:TestNamedStructColors,

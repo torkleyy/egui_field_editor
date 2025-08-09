@@ -34,13 +34,13 @@ impl egui_inspect::EguiInspect for MyStruct {
 		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 		let _parent_id_to_provide_to_children = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		let mut add_content=|ui:&mut egui::Ui| {
-			Self::add_bool(&mut self.a_bool, "Bool", "Boolean Tooltip", read_only, ui);
-			Self::add_number(&mut self.an_int, "Integer", "Integer Tooltip", read_only, None, ui);
-			Self::add_number(&mut self.an_uint, "Unsigned Integer", "Unsigned Integer Tooltip with min/max", read_only, Some((12, 50000)), ui);
-			Self::add_number_slider(&mut self.a_float, "Float", "Float Slider Tooltip", read_only, -12., 50., ui);
-			Self::add_color(&mut self.a_color, "Color", "", read_only, ui);
-			Self::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
-			Self::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, 4, ui);
+			egui_inspect::add_bool(&mut self.a_bool, "Bool", "Boolean Tooltip", read_only, ui);
+			egui_inspect::add_number(&mut self.an_int, "Integer", "Integer Tooltip", read_only, None, ui);
+			egui_inspect::add_number(&mut self.an_uint, "Unsigned Integer", "Unsigned Integer Tooltip with min/max", read_only, Some((12, 50000)), ui);
+			egui_inspect::add_number_slider(&mut self.a_float, "Float", "Float Slider Tooltip", read_only, -12., 50., ui);
+			egui_inspect::add_color(&mut self.a_color, "Color", "", read_only, ui);
+			egui_inspect::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
+			egui_inspect::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, 4, ui);
 		};
 		if !label.is_empty() {
 			egui::CollapsingHeader::new(label).id_salt(id).show(ui, add_content);

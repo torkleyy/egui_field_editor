@@ -8,7 +8,7 @@ macro_rules! impl_inspect_number {
 		$(
 			impl crate::EguiInspect for $t {
 				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-					Self::add_number(self, label.into(), tooltip, read_only, None, ui);
+					crate::add_number(self, label.into(), tooltip, read_only, None, ui);
 				}
 			}
 		)*
@@ -22,24 +22,11 @@ impl_inspect_number!(i32, u32);
 impl_inspect_number!(i64, u64);
 impl_inspect_number!(isize, usize);
 
-
-macro_rules! impl_inspect_mut_number {
-	($($t:ty),+) => {
-		$(
-			impl crate::EguiInspect for &mut $t {
-				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-					Self::add_number(*self, label.into(), tooltip, read_only, None, ui);
-				}
-			}
-		)*
+impl<T:EguiInspect> EguiInspect for &mut T {
+	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		<T as EguiInspect>::inspect_with_custom_id(*self, parent_id, label, tooltip, read_only, ui);
 	}
 }
-impl_inspect_mut_number!(f32, f64);
-impl_inspect_mut_number!(i8, u8);
-impl_inspect_mut_number!(i16, u16);
-impl_inspect_mut_number!(i32, u32);
-impl_inspect_mut_number!(i64, u64);
-impl_inspect_mut_number!(isize, usize);
 
 impl crate::EguiInspect for &'static str {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, _read_only: bool, ui: &mut egui::Ui) {
@@ -53,13 +40,13 @@ impl crate::EguiInspect for &'static str {
 
 impl crate::EguiInspect for String {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-		Self::add_string_singleline(self, label, tooltip, read_only, ui);
+		crate::add_string_singleline(self, label, tooltip, read_only, ui);
 	}
 }
 
 impl crate::EguiInspect for bool {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-		Self::add_bool(self, label, tooltip, read_only, ui);
+		crate::add_bool(self, label, tooltip, read_only, ui);
 	}
 }
 
@@ -74,6 +61,63 @@ impl<T: crate::EguiInspect, const N: usize> crate::EguiInspect for [T; N] {
 		});
 	}
 }
+
+/*
+impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
+	fn inspect_with_custom_id(
+		&mut self,
+		parent_id: Id,
+		label: &str,
+		tooltip: &str,
+		read_only: bool,
+		ui: &mut Ui,
+	) {
+		let id = if parent_id == Id::NULL {
+			ui.next_auto_id()
+		} else {
+			parent_id.with(label)
+		};
+
+		ui.horizontal_top(|ui| {
+			egui::CollapsingHeader::new(format!("{label} [{}]", self.len()))
+				.id_salt(id)
+				.show(ui, |ui| {
+					let mut dnd = DragAndDrop::default();
+
+					for i in 0..self.len() {
+						DragAndDrop::set_payload(dnd, 12);
+						dnd.source(ui, i, |ui| {
+							ui.horizontal(|ui| {
+								ui.label("⠿");
+								self[i].inspect_with_custom_id(
+									id.with(i),
+									&format!("Item {i}"),
+									tooltip,
+									read_only,
+									ui,
+								);
+							});
+						});
+					}
+
+					dnd.finish(ui, self);
+				});
+		});
+
+		ui.add_enabled_ui(!read_only, |ui| {
+			ui.horizontal_top(|ui| {
+				ui.add_space(ui.available_width() - 50.);
+				if ui.button("+").clicked() {
+					self.push(T::default());
+				}
+				if ui.button("-").clicked() {
+					self.pop();
+				}
+			});
+		});
+	}
+}
+*/
 
 impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui) {
@@ -104,7 +148,7 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 
 impl crate::EguiInspect for Color32 {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-		Self::add_color(self, label, tooltip, read_only, ui);
+		crate::add_color(self, label, tooltip, read_only, ui);
 	}
 }
 
@@ -214,7 +258,7 @@ mod nalgebra_ui {
 	($Type:ident, [$($field:ident),+]) => {
 		impl EguiInspect for $Type {
 			fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-				Self::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
+				crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
 					ui.horizontal(|ui| {
 						$(
 							ui.label(stringify!($field));

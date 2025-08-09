@@ -54,13 +54,19 @@ use nalgebra_glm::*;
 pub use egui_inspect_derive::*;
 
 pub struct EguiInspector<'a, T : EguiInspect> {
-	obj: &'a mut T
+	obj: &'a mut T,
+	read_only: bool
 }
 impl<'a, T : EguiInspect> EguiInspector<'a, T> {
-	pub fn new(obj: &'a mut T) -> Self {
-		Self { obj }
+	pub fn new(obj: &'a mut T, read_only: bool) -> Self {
+		Self { obj, read_only }
 	}
-	
+	pub fn read_only(&self) -> bool {
+		self.read_only
+	}
+	pub fn set_read_only(&mut self, read_only: bool) {
+		self.read_only = read_only;
+	}
 }
 
 impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
@@ -71,7 +77,7 @@ impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
 		ui.heading("Inspector");
 		egui::ScrollArea::vertical().show(ui, |ui| {
 			ui.set_min_width(available_width);
-			self.obj.inspect("", "", false, ui);
+			self.obj.inspect("", "", self.read_only, ui);
 		});
 
 		ui.response()

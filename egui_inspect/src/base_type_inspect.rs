@@ -1,6 +1,5 @@
 use std::ops::Add;
 use egui::{Color32, Ui};
- use std::hash::Hash;
 use crate::EguiInspect;
 
 macro_rules! impl_inspect_number {
@@ -92,7 +91,7 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 			egui::CollapsingHeader::new(format!("{label} [{}]", self.len()))
 				.id_salt(id)
 				.show(ui, |ui| {
-					let response = egui_dnd::dnd(ui, "dnd_example")
+					let response = egui_dnd::dnd(ui, id.with("dnd"))
 					.with_animation_time(0.0)
 					.show(
 						self
@@ -108,14 +107,15 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 										ui.label("☰");
 									}
 								});
-								item.item.inspect_with_custom_id(parent_id, label, tooltip, read_only, ui);
+								let index = item.index;
+								item.item.inspect_with_custom_id(parent_id, format!("Item {index}").as_str(), tooltip, read_only, ui);
 							});
 						},
 					);
 				if response.is_drag_finished() {
 					response.update_vec(self);
 				}
-				});
+			});
 		});
 
 		ui.add_enabled_ui(!read_only, |ui| {

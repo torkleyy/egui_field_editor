@@ -101,7 +101,7 @@ impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 		let mut code = include_str!("complete_default.rs");
 		egui::SidePanel::right("right_panel").show(ctx, |ui| {
-			ui.add(EguiInspector::new(self));
+			ui.add(EguiInspector::new(self, false));
 		});
 		egui::CentralPanel::default().show(ctx, |ui| {
 			egui::ScrollArea::vertical().id_salt("code_scrolling").show(ui, |ui| {

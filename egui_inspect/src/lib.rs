@@ -97,10 +97,8 @@ macro_rules! impl_only_numbers_struct_inspect {
 		}
 	}
 }
-#[cfg(feature = "nalgebra_glm")]
 #[derive(Clone, Debug, Copy)]
 pub struct MyColor32(egui::Color32);
-#[cfg(feature = "nalgebra_glm")]
 impl std::ops::Deref for MyColor32 {
 	type Target = egui::Color32;
 
@@ -118,7 +116,6 @@ impl From<MyColor32> for Color32 {
 		value.0
 	}
 }
-#[cfg(feature = "nalgebra_glm")]
 impl std::ops::DerefMut for MyColor32 {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.0
@@ -163,7 +160,7 @@ impl std::ops::DerefMut for MyColor32 {
 ///             Self::add_number_slider(&mut self.a_float, "Float", "Float Slider Tooltip", read_only, -12., 50., ui);
 ///             Self::add_color(&mut self.a_color, "Color", "", read_only, ui);
 ///             Self::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
-///             Self::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, ui);
+///             Self::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, 4, ui);
 ///         };
 ///         if !label.is_empty() {
 ///             egui::CollapsingHeader::new(label).id_salt(id).show(ui, add_content);
@@ -465,22 +462,6 @@ pub trait EguiInspect {
 		})
 	}
 
-}
-
-pub trait DefaultEguiInspect : EguiInspect {
-	fn default_inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-		self.default_inspect_with_custom_id(egui::Id::NULL, label, tooltip, read_only, ui);
-	}
-	fn default_inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui);
-}
-
-impl<T: DefaultEguiInspect> EguiInspect for T {
-	fn inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-		self.default_inspect(label, tooltip, read_only, ui);
-	}
-	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-		self.default_inspect_with_custom_id(parent_id,label, tooltip, read_only, ui);
-	}
 }
 
 pub mod base_type_inspect;

@@ -1,9 +1,9 @@
 
 use egui::TextEdit;
-use egui_inspect::{DefaultEguiInspect, EguiInspector};
+use egui_inspect::{EguiInspect, EguiInspector};
 use eframe::egui;
 
-#[derive(DefaultEguiInspect, Debug, Default)]
+#[derive(EguiInspect, Debug, Default)]
 pub struct TestData {
 	#[inspect(name="plip", multiline)]
 	pub ploup:String,
@@ -15,7 +15,7 @@ pub struct TestData {
 	pub f32_2:f32,
 	myenum:MyEnum
 }
-#[derive(DefaultEguiInspect, Debug, Default, PartialEq)]
+#[derive(EguiInspect, Debug, Default, PartialEq)]
 pub enum MyEnum {
 	#[default]
 	Item1,
@@ -26,7 +26,7 @@ pub enum MyEnum {
 	Item3(u8, u16),
 	Item4{a:f32, b:i64}
 }
-#[derive(DefaultEguiInspect, Debug, Default)]
+#[derive(EguiInspect, Debug, Default)]
 pub struct Test {
 	#[inspect(multiline=8)]
 	pub ploup:String,
@@ -37,10 +37,10 @@ pub struct Test {
 	pub double: f64,
 }
 
-#[derive(DefaultEguiInspect, Debug, Default)]
+#[derive(EguiInspect, Debug, Default)]
 pub struct Test2(u32, TestData);
 
-#[derive(DefaultEguiInspect, Default)]
+#[derive(EguiInspect, Default)]
 struct MyApp {
 	test: Test,
 	test2: Test2

@@ -1,11 +1,11 @@
 
-use egui_inspect::{DefaultEguiInspect, EguiInspector};
+use egui_inspect::{EguiInspect, EguiInspector};
 use egui::{Color32, TextEdit};
 use eframe::egui;
 
 macro_rules! generate_struct_tuple {
 	($name:ident, [$($ty:ty),*]) => {
-		#[derive(DefaultEguiInspect, Debug, Default)]
+		#[derive(EguiInspect, Debug, Default)]
 		pub struct $name(
 			$(
 				$ty,
@@ -19,7 +19,7 @@ macro_rules! generate_struct_tuple {
 }
 generate_struct_tuple!(StructNumericTuple, [u8, u16, u32, u64, usize, f32, f64]);
 
-#[derive(Default, DefaultEguiInspect, Debug, PartialEq)]
+#[derive(Default, EguiInspect, Debug, PartialEq)]
 enum TestEnum {
 	#[default]
 	None,
@@ -43,7 +43,7 @@ enum TestEnum {
 	#[allow(dead_code)]
 	Hidden,
 }
-#[derive(Default, DefaultEguiInspect, Debug, PartialEq)]
+#[derive(Default, EguiInspect, Debug, PartialEq)]
 enum Enum2 {
 	#[default]
 	None,
@@ -54,7 +54,7 @@ enum Enum2 {
 	#[allow(dead_code)]
 	Hidden,
 }
-#[derive(Default, DefaultEguiInspect, Debug, PartialEq)]
+#[derive(Default, EguiInspect, Debug, PartialEq)]
 struct StructNamed {
 	pub u8:u8,
 	#[inspect(range(min = 0., max = 12.0))]
@@ -69,7 +69,7 @@ struct StructNamed {
 	pub my_enum:TestEnum,
 	pub color : Color32
 }
-#[derive(Default, DefaultEguiInspect)]
+#[derive(Default, EguiInspect)]
 struct MyApp {
 	#[inspect(read_only)]
 	string: String,

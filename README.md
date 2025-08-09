@@ -10,7 +10,7 @@ Its goals are:
 - to be hyper user-friendly
 
 This crate provide a `EguiInspect` trait which is necessary for a struct or enum to be inspected. This trait is implemented for many base
-types, and can be implemented for user created types with the macro `#[derive(DefaultEguiInspect)]` (see [here](#customizing-generated-code) to know why `Default`).
+types, and can be implemented for user created types with the macro `#[derive(EguiInspect)]`.
 If every underlying types implements `EguiInspect`, then you will be able to inspect it.
 
 You optionally can add a `nalgebra_glm` support which provide implementation of `EguiInspect` for `nalgebra_glm` types.
@@ -28,32 +28,9 @@ See the following examples:
  * [simple](egui_inspect/examples/simple.rs): a simple example
  * [nalgebra_glm](egui_inspect/examples/nalgebra_glm.rs): example with `nalgebra_glm` types.
  * [complete](egui_inspect/examples/complete_default.rs): example aiming to be a test case by displaying all supported types/enum/structs.
-
+ * [manual_implement](egui_inspect/examples/manual_implement.rs): see [Implement `EguiInspect` yourself](#implement-eguiinspect-yourself)
 
 # Documentation
-## Customizing generated code
-This will generate a `DefaultEguiInspect` implementation and a blanked implementation of `EguiInspect` is implemented for types implementing `DefaultEguiInspect`. That way, you can directly use your type to inspect it or you can implement `EguiInspect` and use the default implementation if needed.
-
-For exemple:
-```rust
-#[derive(DefaultEguiInspect)]
-struct MyStruct {
-	is_complex_ui:bool,
-	#[inspect(hidden)]
-	complex_ui_needed:MyStructOrEnumNeedingComplexUI,
-	simple_ui_needed:MyStructOrEnumNeedingSimpleUI,
-}
-impl EguiInspect for MyStruct {
-	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-		if self.is_complex_ui {
-			// implement the complex ui
-		} else {
-			self.default_inspect_with_custom_id(self, parent_id, label, tooltip, read_only, ui);
-		}
-	}
-}
-```
-
 ## Implement `EguiInspect` yourself
 The trait `EguiInspect` provides many default implementation of functions to edit basic types. So implementing in simple case is pretty straightforward.
 
@@ -89,7 +66,7 @@ impl egui_inspect::EguiInspect for MyStruct {
 	}
 }
 ```
-
+See the [manual_implement](egui_inspect/examples/manual_implement.rs) example
 ## Why 2 inspect methods ?
 The trait `EguiInspect` provide two methods :
  * `fn inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui);`

@@ -92,8 +92,9 @@ struct MyApp {
 	#[inspect(name="Named Structure")]
 	struct_named: StructNamed,
 	#[inspect(name="Enum")]
-	enumaration:TestEnum,
-	option:Option<StructNamed>
+	enumeration:TestEnum,
+	option:Option<StructNamed>,
+	vector:Vec<StructNamed>,
 }
 
 impl eframe::App for MyApp {

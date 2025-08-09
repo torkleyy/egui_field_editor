@@ -86,16 +86,18 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 					item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), tooltip, read_only, ui);
 				}
 			});
+		});
+		ui.add_enabled_ui(!read_only, |ui| {
+			ui.horizontal_top(|ui| {
+				ui.add_space(ui.available_width() - 50.);
+				if ui.button("+").clicked() {
+					self.push(T::default());
+				}
 
-			let response = ui.button("+");
-			if response.clicked() {
-				self.push(T::default());
-			}
-
-			let response = ui.button("-");
-			if response.clicked() {
-				self.pop();
-			}
+				if ui.button("-").clicked() {
+					self.pop();
+				}
+			});
 		});
 	}
 }
@@ -139,25 +141,21 @@ impl<T : EguiInspect> crate::EguiInspect for Option<T>
 		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		let available_width = ui.available_width();
 		let label_width = available_width * 0.2;
-		let _field_width = 100.0f32.max(available_width * 0.8 - 10.0);
+		let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
 
 		ui.horizontal(|ui| {
-			ui.add_enabled_ui(!read_only, |ui| {
-				let r = ui.add_sized(
-					[label_width, 0.0],
-					egui::Label::new(label)
-						.truncate()
-						.show_tooltip_when_elided(true)
-						.halign(egui::Align::LEFT),
-				);
+			let r = ui.add_sized(
+				[label_width, 0.0],
+				egui::Label::new(label)
+					.truncate()
+					.show_tooltip_when_elided(true)
+					.halign(egui::Align::LEFT),
+			);
 
-				if !tooltip.is_empty() {
-					if !read_only {
-						r.on_hover_text(tooltip);
-					} else {
-						r.on_disabled_hover_text(tooltip);
-					}
-				}
+			if !tooltip.is_empty() {
+				r.on_hover_text(tooltip).on_disabled_hover_text(tooltip);
+			}
+			ui.add_enabled_ui(!read_only, |ui| {
 				egui::ComboBox::from_id_salt(id)
 					.selected_text(
 						match self {
@@ -165,6 +163,7 @@ impl<T : EguiInspect> crate::EguiInspect for Option<T>
 							Some(_) => "Some"
 						},
 					)
+					.width(field_width)
 					.show_ui(
 						ui,
 						|ui| {
@@ -188,18 +187,15 @@ impl<T : EguiInspect> crate::EguiInspect for Option<T>
 		match self {
 			None => {}
 			Some(field0) => {
-				ui.indent(
-					id,
-					|ui| {
-						field0.inspect_with_custom_id(
-							parent_id,
-							&"Some",
-							"",
-							false,
-							ui,
-						);
-					},
-				);
+				ui.indent(id, |ui| {
+					field0.inspect_with_custom_id(
+						parent_id,
+						&"",
+						"",
+						read_only,
+						ui,
+					);
+				});
 			}
 		}
 	}

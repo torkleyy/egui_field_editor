@@ -149,14 +149,31 @@ fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 				//TODO: find a way to use it (if only Unit variants) or don't declare it if not needed
 				#[allow(unused_variables)]
 				let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
+				let available_width = ui.available_width();
+				let label_width = available_width * 0.2;
+				let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
+
 				ui.horizontal(|ui| {
-					ui.label(label);
-					egui::ComboBox::from_id_salt(id)
-					.selected_text(match self {
-						#(#selected_text_arms)*
-					})
-					.show_ui(ui, |ui| {
-						#(#selectable_blocks)*
+					let r = ui.add_sized(
+						[label_width, 0.0],
+						egui::Label::new(label)
+							.truncate()
+							.show_tooltip_when_elided(true)
+							.halign(egui::Align::LEFT),
+					);
+
+					if !tooltip.is_empty() {
+						r.on_hover_text(tooltip).on_disabled_hover_text(tooltip);
+					}
+					ui.add_enabled_ui(!read_only, |ui| {
+						egui::ComboBox::from_id_salt(id)
+						.width(field_width)
+						.selected_text(match self {
+							#(#selected_text_arms)*
+						})
+						.show_ui(ui, |ui| {
+							#(#selectable_blocks)*
+						});
 					});
 				});
 

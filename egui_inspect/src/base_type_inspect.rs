@@ -106,12 +106,12 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 							ui.horizontal(|ui| {
 								handle.ui(ui, |ui| {
 									if state.dragged {
-										ui.label("dragging");
+										ui.label("≡");
 									} else {
-										ui.label("drag");
+										ui.label("☰");
 									}
 								});
-								&item.item.inspect_with_custom_id(parent_id, label, tooltip, read_only, ui);
+								item.item.inspect_with_custom_id(parent_id, label, tooltip, read_only, ui);
 							});
 						},
 					);

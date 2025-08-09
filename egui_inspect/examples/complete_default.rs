@@ -20,7 +20,7 @@ macro_rules! generate_struct_tuple {
 generate_struct_tuple!(StructNumericTuple, [u8, u16, u32, u64, usize, f32, f64]);
 
 #[derive(Default, DefaultEguiInspect, Debug, PartialEq)]
-enum Enum1 {
+enum TestEnum {
 	#[default]
 	None,
 	Tuple1(u8),
@@ -66,12 +66,12 @@ struct StructNamed {
 	pub i16_range:i16,
 	#[inspect(slider, range(min = 1.0, max = 124.0))]
 	pub i16_slider:i16,
-	pub my_enum:Enum1,
+	pub my_enum:TestEnum,
 	pub color : Color32
 }
 #[derive(Default, DefaultEguiInspect)]
 struct MyApp {
-	//#[inspect(read_only)]
+	#[inspect(read_only)]
 	string: String,
 	#[inspect(multiline)]
 	code: String,
@@ -90,7 +90,9 @@ struct MyApp {
 	#[inspect(name="Tuple Structure", tooltip="tooltip on structs are ignored")]
 	struct_tuple: StructNumericTuple,
 	#[inspect(name="Named Structure")]
-	struct_named: StructNamed
+	struct_named: StructNamed,
+	#[inspect(name="Enum")]
+	enumaration:TestEnum
 }
 
 impl eframe::App for MyApp {

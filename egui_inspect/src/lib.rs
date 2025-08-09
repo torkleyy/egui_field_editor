@@ -46,8 +46,7 @@
 //!
 
 
-use egui::{Response, Ui, Widget};
-use egui_flex::{item, Flex, FlexAlignContent};
+use egui::{Color32, Response, Ui, Widget};
 #[cfg(feature = "nalgebra_glm")]
 use nalgebra_glm::*;
 
@@ -63,30 +62,7 @@ impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 	}
 	
 }
-/*
-fn test_grid(ui: &mut egui::Ui, available_width: f32) {
-	egui::Grid::new("form_grid")
-	.num_columns(2)
-	.spacing([10.0, 40.0])
-	.striped(false)
-	.show(ui, |ui| {
-		let label_width = available_width * 0.2;
-		let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
 
-		ui.add_sized([label_width,0.],egui::Label::new("label:").truncate().show_tooltip_when_elided(true).halign(egui::Align::LEFT));
-		ui.add(egui::TextEdit::singleline(&mut "".to_string()).desired_width(field_width));
-		ui.end_row();
-
-		ui.add_sized([label_width,0.], egui::Label::new("label ploup:").truncate().show_tooltip_when_elided(true).halign(egui::Align::LEFT));
-		ui.add(egui::TextEdit::multiline(&mut "".to_string()).desired_width(field_width));
-		ui.end_row();
-
-		ui.add_sized([label_width,0.], egui::Label::new("label plus long:").truncate().show_tooltip_when_elided(true).halign(egui::Align::LEFT));
-		ui.spacing_mut().slider_width = field_width-50.; 
-		ui.add(egui::Slider::new(&mut 0.0, 0.0..=12.0));
-		ui.end_row();
-	});
-}*/
 impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
 	fn ui(self, ui: &mut Ui) -> Response {
 		ui.set_min_width(100.);
@@ -95,8 +71,7 @@ impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
 		ui.heading("Inspector");
 		egui::ScrollArea::vertical().show(ui, |ui| {
 			ui.set_min_width(available_width);
-			//test_grid(ui, available_width);
-			self.obj.inspect("", ui);
+			self.obj.inspect("", "", false, ui);
 		});
 
 		ui.response()
@@ -104,28 +79,6 @@ impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
 
 }
 
-macro_rules! impl_add_number_slider {
-	($(($name:ident, $t:ty)),+) => {
-		$(
-			fn $name(data: &mut $t, label: &str, ui: &mut egui::Ui, min: $t, max: $t) {
-				Self::add_flex_widget_line(label, egui::Slider::new(data, min..=max), ui);
-			}
-		)*
-	};
-}
-macro_rules! impl_add_number_dragfield {
-	($(($name:ident, $t:ty)),+) => {
-		$(
-			fn $name(data: &mut $t, label: &str, ui: &mut egui::Ui, minmax: Option<(f32, f32)>) {
-				let mut editor=egui::DragValue::new(data);
-				if let Some(minmax) = minmax {
-					editor = editor.range((minmax.0 as $t)..=(minmax.1 as $t));
-				}
-				Self::add_flex_widget_line(label, editor, ui);
-			}
-		)*
-	};
-}
 #[cfg(feature = "nalgebra_glm")]
 macro_rules! impl_only_numbers_struct_inspect {
 	($method:ident, $Type:ident, [$($field:ident),+]) => {
@@ -155,6 +108,16 @@ impl std::ops::Deref for MyColor32 {
 		&self.0
 	}
 }
+impl From<Color32> for MyColor32 {
+	fn from(value: Color32) -> Self {
+		Self(value)
+	}
+}
+impl From<MyColor32> for Color32 {
+	fn from(value: MyColor32) -> Self {
+		value.0
+	}
+}
 #[cfg(feature = "nalgebra_glm")]
 impl std::ops::DerefMut for MyColor32 {
 	fn deref_mut(&mut self) -> &mut Self::Target {
@@ -164,55 +127,122 @@ impl std::ops::DerefMut for MyColor32 {
 
 /// Base trait to automatically inspect structs
 pub trait EguiInspect {
-	fn inspect(&mut self, label: &str, ui: &mut egui::Ui) {
-		self.inspect_with_custom_id(egui::Id::NULL, label, ui);
+	fn inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		self.inspect_with_custom_id(egui::Id::NULL, label, tooltip, read_only, ui);
 	}
-	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
+	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui);
 
-	fn add_flex_widget_line<T: egui_flex::FlexWidget>(label: &str, widget: T, ui: &mut egui::Ui) -> egui::Response {
-		Flex::horizontal().w_full().align_content(FlexAlignContent::Start).show(ui, |ui| {
-			ui.add(item(), egui::Label::new(label));
-			ui.add(item().grow(2.0), widget);
+	fn add_widget<T: egui::Widget>(label: &str, widget: T, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		let available_width = ui.available_width();
+		let label_width = available_width * 0.2;
+		let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
+		ui.horizontal(|ui| {
+			ui.add_enabled_ui(!read_only, |ui| {
+				let r=ui.add_sized([label_width,0.],egui::Label::new(label).truncate().show_tooltip_when_elided(true).halign(egui::Align::LEFT));
+				if !tooltip.is_empty() {
+					if !read_only {
+						r.on_hover_text(tooltip);
+					} else {
+						r.on_disabled_hover_text(tooltip);
+					}
+				}
+				ui.spacing_mut().slider_width = field_width-50.; 
+				ui.add_sized([field_width, 0.], widget);
+			});
 		}).response
 	}
-	impl_add_number_slider!{
-		(add_f32_slider, f32),
-		(add_f64_slider, f64),
-		(add_u8_slider,  u8),
-		(add_i8_slider,  i8),
-		(add_u16_slider, u16),
-		(add_i16_slider, i16),
-		(add_u32_slider, u32),
-		(add_i32_slider, i32),
-		(add_u64_slider, u64),
-		(add_i64_slider, i64)
-	}
-	impl_add_number_dragfield!{
-		(add_f32_dragfield, f32),
-		(add_f64_dragfield, f64),
-		( add_u8_dragfield, u8),
-		( add_i8_dragfield, i8),
-		(add_u16_dragfield, u16),
-		(add_i16_dragfield, i16),
-		(add_u32_dragfield, u32),
-		(add_i32_dragfield, i32),
-		(add_u64_dragfield, u64),
-		(add_i64_dragfield, i64)
-	}
-	fn add_string_singleline(data: &mut String, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) -> egui::Response {
-		Self::add_flex_widget_line(label, egui::TextEdit::singleline(data), ui)
-	}
-	fn add_string_multiline(data: &mut String, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) -> egui::Response {
-		Self::add_flex_widget_line(label, egui::TextEdit::multiline(data), ui)
-	}
-	fn add_bool(data: &mut bool, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) -> egui::Response {
-		Self::add_flex_widget_line(label, egui::Checkbox::new(data, ""), ui)
-	}
-	fn add_color(data: &mut egui::Color32, _parent_id: egui::Id, label: &str, ui: &mut egui::Ui) -> egui::Response {
+	fn add_custom_field<F>(
+		label: &str,
+		tooltip: &str,
+		read_only: bool,
+		ui: &mut egui::Ui,
+		field_renderer: F,
+	) -> egui::Response
+	where
+		F: FnOnce(&mut egui::Ui, f32),
+	{
+		let available_width = ui.available_width();
+		let label_width = available_width * 0.2;
+		let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
+
 		ui.horizontal(|ui| {
-			ui.label(label.to_owned() + ":");
+			ui.add_enabled_ui(!read_only, |ui| {
+				let r = ui.add_sized(
+					[label_width, 0.0],
+					egui::Label::new(label)
+						.truncate()
+						.show_tooltip_when_elided(true)
+						.halign(egui::Align::LEFT),
+				);
+
+				if !tooltip.is_empty() {
+					if !read_only {
+						r.on_hover_text(tooltip);
+					} else {
+						r.on_disabled_hover_text(tooltip);
+					}
+				}
+
+				field_renderer(ui, field_width);
+			});
+		}).response
+	}
+	
+	fn add_number_slider<Num: egui::emath::Numeric>(data: &mut Num, label: &str, tooltip: &str, read_only: bool, min:Num, max: Num, ui: &mut egui::Ui) {
+		let editor=egui::Slider::new(data, min..=max);
+		Self::add_custom_field(label, tooltip, read_only, ui, |ui, field_width| {
+			ui.spacing_mut().slider_width = field_width-50.; 
+			ui.add_sized([field_width, 0.], editor);
+		});
+	}
+	fn add_number<Num: egui::emath::Numeric>(data: &mut Num, label: &str, tooltip: &str, read_only: bool, minmax: Option<(Num, Num)>, ui: &mut egui::Ui) {
+		let mut editor=egui::DragValue::new(data);
+		if let Some(minmax) = minmax {
+			editor = editor.range(minmax.0..=minmax.1);
+		}
+		Self::add_widget(label, editor, tooltip, read_only, ui);
+	}
+
+	fn add_string_singleline<'t>(data: &'t mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		Self::add_widget(label, egui::TextEdit::singleline(data), tooltip, read_only, ui)
+	}
+	fn add_string_multiline<'t>(data: &'t mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		Self::add_widget(label, egui::TextEdit::multiline(data), tooltip, read_only, ui)
+	}
+	
+	fn add_bool(data: &mut bool, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		Self::add_widget(label, egui::Checkbox::new(data, ""), tooltip, read_only, ui)
+	}
+	fn add_color32(data: &mut egui::Color32, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		let available_width = ui.available_width();
+		let label_width = available_width * 0.2;
+		//let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
+		ui.horizontal(|ui| {
+			ui.add_enabled_ui(!read_only, |ui| {
+				let r=ui.add_sized([label_width,0.],egui::Label::new(label).truncate().show_tooltip_when_elided(true).halign(egui::Align::LEFT));
+				if !tooltip.is_empty() {
+					if !read_only {
+						r.on_hover_text(tooltip);
+					} else {
+						r.on_disabled_hover_text(tooltip);
+					}
+				}
+			});
 			ui.color_edit_button_srgba(data);
 		}).response
+	}
+	fn add_color<T>(data: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response where
+		MyColor32: From<T>,
+		T : From<MyColor32>,
+		T : Clone {
+		
+		Self::add_custom_field(label, tooltip, read_only, ui, |ui, _field_width| {
+			let mut color: MyColor32 = data.clone().into();
+			if ui.color_edit_button_srgba(&mut color).changed() {
+				*data = color.into();
+			}
+		})
+			
 	}
 	#[cfg(feature = "nalgebra_glm")]
 	impl_only_numbers_struct_inspect!(add_vec2, Vec2, [x, y]);
@@ -275,76 +305,59 @@ pub trait EguiInspect {
 	#[cfg(feature = "nalgebra_glm")]
 	impl_only_numbers_struct_inspect!(add_vec4i64, I64Vec4, [x, y, z, w]);
 	#[cfg(feature = "nalgebra_glm")]
-	fn add_vec3_color(data: &mut Vec3, label: &str, ui: &mut egui::Ui) -> egui::Response {
-		ui.horizontal(|ui| {
-			ui.label(format!("{label}:"));
+	fn add_vec3_color(data: &mut Vec3, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		Self::add_custom_field(label, tooltip, read_only, ui, |ui, _field_width| {
 			let color: MyColor32 = (*data).into();
 			let mut array = color.to_normalized_gamma_f32()[0..3].try_into().unwrap();
 			if ui.color_edit_button_rgb(&mut array).changed() {
 				*data = array.into();
 			}
-		}).response
+		})
 	}
 	#[cfg(feature = "nalgebra_glm")]
-	fn add_vec4_color(data: &mut Vec4, label: &str, ui: &mut egui::Ui) -> egui::Response {
-		ui.horizontal(|ui| {
-			ui.label(format!("{label}:"));
+	fn add_vec4_color(data: &mut Vec4, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		Self::add_custom_field(label, tooltip, read_only, ui, |ui, _field_width| {
 			let mut color: MyColor32 = (*data).into();
 			if ui.color_edit_button_srgba(&mut color).changed() {
 				*data = color.into();
 			}
-		}).response
+		})
 	}
 	#[cfg(feature = "nalgebra_glm")]
-	fn add_vec3u8_color(data: &mut U8Vec3, label: &str, ui: &mut egui::Ui) -> egui::Response {
-		ui.horizontal(|ui| {
-			ui.label(format!("{label}:"));
+	fn add_vec3u8_color(data: &mut U8Vec3, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		Self::add_custom_field(label, tooltip, read_only, ui, |ui, _field_width| {
 			let color: MyColor32 = (*data).into();
 			let mut array = color.to_array()[0..3].try_into().unwrap();
 			if ui.color_edit_button_srgb(&mut array).changed() {
 				*data = array.into();
 			}
-		}).response
+		})
 	}
 	#[cfg(feature = "nalgebra_glm")]
-	fn add_vec4u8_color(data: &mut U8Vec4, label: &str, ui: &mut egui::Ui) -> egui::Response {
-		ui.horizontal(|ui| {
-			ui.label(format!("{label}:"));
+	fn add_vec4u8_color(data: &mut U8Vec4, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+		Self::add_custom_field(label, tooltip, read_only, ui, |ui, _field_width| {
 			let mut color: MyColor32 = (*data).into();
 			if ui.color_edit_button_srgba(&mut color).changed() {
 				*data = color.into();
 			}
-		}).response
+		})
 	}
 
-}
-
-pub trait InspectNumber {
-	fn inspect_with_slider(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui, min: f32, max: f32);
-	fn inspect_with_drag_value(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui, minmax: Option<(f32, f32)>);
-}
-
-pub trait InspectString {
-	fn inspect_multiline(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
-	fn inspect_singleline(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
-}
-pub trait InspectColor {
-	fn inspect_color(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
 }
 
 pub trait DefaultEguiInspect : EguiInspect {
-	fn default_inspect(&mut self, label: &str, ui: &mut egui::Ui) {
-		self.default_inspect_with_custom_id(egui::Id::NULL, label, ui);
+	fn default_inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		self.default_inspect_with_custom_id(egui::Id::NULL, label, tooltip, read_only, ui);
 	}
-	fn default_inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui);
+	fn default_inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui);
 }
 
 impl<T: DefaultEguiInspect> EguiInspect for T {
-	fn inspect(&mut self, label: &str, ui: &mut egui::Ui) {
-		self.default_inspect(label, ui);
+	fn inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		self.default_inspect(label, tooltip, read_only, ui);
 	}
-	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, ui: &mut egui::Ui) {
-		self.default_inspect_with_custom_id(parent_id,label, ui);
+	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		self.default_inspect_with_custom_id(parent_id,label, tooltip, read_only, ui);
 	}
 }
 

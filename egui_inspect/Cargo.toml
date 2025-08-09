@@ -13,7 +13,6 @@ categories = [ "gui", "game-development"]
 
 [dependencies]
 egui = "0.32.0"
-egui_flex = "0.4.0"
 egui_inspect_derive = { path = "../egui_inspect_derive" }
 nalgebra-glm = { version = "0.20", features = [], optional=true }
 

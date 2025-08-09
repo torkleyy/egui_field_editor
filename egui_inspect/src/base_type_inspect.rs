@@ -1,12 +1,14 @@
 use std::ops::Add;
 use egui::{Color32, Ui};
 
+use crate::EguiInspect;
+
 macro_rules! impl_inspect_number {
 	($($t:ty),+) => {
 		$(
 			impl crate::EguiInspect for $t {
-				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, enabled: bool, ui: &mut egui::Ui) {
-					Self::add_number(self, label.into(), tooltip, enabled, None, ui);
+				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+					Self::add_number(self, label.into(), tooltip, read_only, None, ui);
 				}
 			}
 		)*
@@ -25,8 +27,8 @@ macro_rules! impl_inspect_mut_number {
 	($($t:ty),+) => {
 		$(
 			impl crate::EguiInspect for &mut $t {
-				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, enabled: bool, ui: &mut egui::Ui) {
-					Self::add_number(*self, label.into(), tooltip, enabled, None, ui);
+				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+					Self::add_number(*self, label.into(), tooltip, read_only, None, ui);
 				}
 			}
 		)*
@@ -40,7 +42,7 @@ impl_inspect_mut_number!(i64, u64);
 impl_inspect_mut_number!(isize, usize);
 
 impl crate::EguiInspect for &'static str {
-	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, _enabled: bool, ui: &mut egui::Ui) {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, _read_only: bool, ui: &mut egui::Ui) {
 		ui.horizontal(|ui| {
 			ui.label(label.to_owned() + ":").on_hover_text(tooltip).on_disabled_hover_text(tooltip);
 			ui.colored_label(Color32::from_rgb(255, 0, 0), self.to_string())
@@ -50,39 +52,38 @@ impl crate::EguiInspect for &'static str {
 }
 
 impl crate::EguiInspect for String {
-	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, enabled: bool, ui: &mut egui::Ui) {
-		Self::add_string_singleline(self, label, tooltip, enabled, ui);
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		Self::add_string_singleline(self, label, tooltip, read_only, ui);
 	}
 }
 
 impl crate::EguiInspect for bool {
-	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, enabled: bool, ui: &mut egui::Ui) {
-		//ui.add_enabled(true, Checkbox::new(self, label));
-		Self::add_bool(self, label, tooltip, enabled, ui);
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		Self::add_bool(self, label, tooltip, read_only, ui);
 	}
 }
 
 impl<T: crate::EguiInspect, const N: usize> crate::EguiInspect for [T; N] {
-	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, enabled: bool, ui: &mut Ui) {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui) {
 		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		egui::CollapsingHeader::new(label.to_string().add(format!("[{N}]").as_str())).show(ui, |ui| {
 			for (i, item) in self.iter_mut().enumerate() {
-				item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), tooltip, enabled, ui);
+				item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), tooltip, read_only, ui);
 			}
 		});
 	}
 }
 
 impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
-	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, enabled: bool, ui: &mut Ui) {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui) {
 		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		ui.horizontal_top(|ui| {
 			egui::CollapsingHeader::new(label.to_string().add(format!("[{}]", self.len()).as_str())).id_salt(id)
 				.show(ui, |ui| {
 				for (i, item) in self.iter_mut().enumerate() {
-					item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), tooltip, enabled, ui);
+					item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), tooltip, read_only, ui);
 				}
 			});
 
@@ -100,11 +101,109 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 }
 
 impl crate::EguiInspect for Color32 {
-	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, enabled: bool, ui: &mut egui::Ui) {
-		Self::add_color(self, label, tooltip, enabled, ui);
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		Self::add_color(self, label, tooltip, read_only, ui);
 	}
 }
 
+/*fn custom_collapsing(ui: &mut Ui, selected: &mut String, options: &[String]) {
+	let id = ui.make_persistent_id("custom_collapsing");
+	let mut state = egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true);
+
+	state.show_header(ui, |ui| {
+		ui.horizontal(|ui| {
+			ui.label("Options:");
+			egui::ComboBox::from_id_salt("combo_in_header")
+				.selected_text(selected.clone())
+				.show_ui(ui, |ui| {
+					for option in options {
+						ui.selectable_value(selected, option.clone(), option);
+					}
+				});
+		});
+	});
+
+	state.show_body_unindented(ui, |ui| {
+		ui.label("Contenu du collapsing");
+	});
+}*/
+
+impl<T : EguiInspect> crate::EguiInspect for Option<T>
+	where T : Default+PartialEq {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		let id = if _parent_id == egui::Id::NULL {
+			ui.next_auto_id()
+		} else {
+			_parent_id.with(label)
+		};
+		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
+		let available_width = ui.available_width();
+		let label_width = available_width * 0.2;
+		let _field_width = 100.0f32.max(available_width * 0.8 - 10.0);
+
+		ui.horizontal(|ui| {
+			ui.add_enabled_ui(!read_only, |ui| {
+				let r = ui.add_sized(
+					[label_width, 0.0],
+					egui::Label::new(label)
+						.truncate()
+						.show_tooltip_when_elided(true)
+						.halign(egui::Align::LEFT),
+				);
+
+				if !tooltip.is_empty() {
+					if !read_only {
+						r.on_hover_text(tooltip);
+					} else {
+						r.on_disabled_hover_text(tooltip);
+					}
+				}
+				egui::ComboBox::from_id_salt(id)
+					.selected_text(
+						match self {
+							None => "None",
+							Some(_) => "Some"
+						},
+					)
+					.show_ui(
+						ui,
+						|ui| {
+							if ui.selectable_value(self, None, "None").changed() {
+								*self = None;
+							}
+							if ui
+								.selectable_value(
+									self,
+									Some(Default::default()),
+									"Some",
+								)
+								.changed()
+							{
+								*self = Some(Default::default());
+							}
+						},
+					);
+			});
+		});
+		match self {
+			None => {}
+			Some(field0) => {
+				ui.indent(
+					id,
+					|ui| {
+						field0.inspect_with_custom_id(
+							parent_id,
+							&"Some",
+							"",
+							false,
+							ui,
+						);
+					},
+				);
+			}
+		}
+	}
+}
 
 
 
@@ -118,8 +217,8 @@ mod nalgebra_ui {
 	macro_rules! impl_only_numbers_struct_inspect {
 	($Type:ident, [$($field:ident),+]) => {
 		impl EguiInspect for $Type {
-			fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, enabled: bool, ui: &mut egui::Ui) {
-				Self::add_custom_field(label, tooltip, enabled, ui, |ui, _field_size| {
+			fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+				Self::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
 					ui.horizontal(|ui| {
 						$(
 							ui.label(stringify!($field));

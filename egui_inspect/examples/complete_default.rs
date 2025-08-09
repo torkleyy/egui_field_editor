@@ -54,7 +54,7 @@ enum Enum2 {
 	#[allow(dead_code)]
 	Hidden,
 }
-#[derive(Default, DefaultEguiInspect, Debug)]
+#[derive(Default, DefaultEguiInspect, Debug, PartialEq)]
 struct StructNamed {
 	pub u8:u8,
 	#[inspect(range(min = 0., max = 12.0))]
@@ -92,7 +92,8 @@ struct MyApp {
 	#[inspect(name="Named Structure")]
 	struct_named: StructNamed,
 	#[inspect(name="Enum")]
-	enumaration:TestEnum
+	enumaration:TestEnum,
+	option:Option<StructNamed>
 }
 
 impl eframe::App for MyApp {

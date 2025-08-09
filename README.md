@@ -64,23 +64,25 @@ struct MyStruct {
 	an_int:i32,
 	an_uint:u64,
 	a_float:f32,
-	a_color:Color32,
+	a_color:egui::Color32,
 	a_string:String,
-	a__second_string:String,
+	a_second_string:String,
 }
-impl EguiInspect for MyStruct {
-	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+impl egui_inspect::EguiInspect for MyStruct {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
+		let _parent_id_to_provide_to_children = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		let mut add_content=|ui:&mut egui::Ui| {
 			Self::add_bool(&mut self.a_bool, "Bool", "Boolean Tooltip", read_only, ui);
-			Self::add_number(&mut self.an_int, "Integer", "Integer Tooltip", None, read_only, ui);
-			Self::add_number(&mut self.an_uint, "Unsigned Integer", "Unsigned Integer Tooltip with min/max", Some((-12, 50)), read_only, ui);
-			Self::add_number(&mut self.a_float, "Float", "Float Slider Tooltip", -12., 50., read_only, ui);
+			Self::add_number(&mut self.an_int, "Integer", "Integer Tooltip", read_only, None, ui);
+			Self::add_number(&mut self.an_uint, "Unsigned Integer", "Unsigned Integer Tooltip with min/max", read_only, Some((12, 50000)), ui);
+			Self::add_number_slider(&mut self.a_float, "Float", "Float Slider Tooltip", read_only, -12., 50., ui);
 			Self::add_color(&mut self.a_color, "Color", "", read_only, ui);
 			Self::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
-			Self::add_string_multiline(&mut self.a__second_string, "Multiline String", "", read_only, ui);
+			Self::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, ui);
 		};
 		if !label.is_empty() {
-			ui.collapsing(label, add_content);
+			egui::CollapsingHeader::new(label).id_salt(id).show(ui, add_content);
 		} else {
 			add_content(ui);
 		}

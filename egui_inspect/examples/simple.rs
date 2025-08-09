@@ -50,7 +50,6 @@ struct MyApp {
 	test2: Test2
 }
 
-
 impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 		let mut code = include_str!("simple.rs");

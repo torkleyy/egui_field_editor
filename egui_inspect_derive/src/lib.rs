@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
-	parse_macro_input, parse_quote, spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, GenericParam, Generics, Index
+	parse_macro_input, parse_quote, spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, GenericParam, Generics, Index, Meta
 };
 
 use darling::{FromField, FromMeta, FromVariant};
@@ -15,6 +15,31 @@ struct Range {
 	#[darling(default)]
 	max: f32,
 }
+#[derive(Debug, Default)]
+struct Multiline(pub Option<u8>);
+
+impl FromMeta for Multiline {
+	fn from_meta(meta: &Meta) -> darling::Result<Self> {
+		match meta {
+			Meta::Path(_) => Ok(Multiline(Some(4))),
+			Meta::NameValue(nv) => {
+				let value = u8::from_expr(&nv.value)?;
+				Ok(Multiline(Some(value)))
+			}
+			Meta::List(list) => {
+				if list.tokens.is_empty() {
+					Ok(Multiline(Some(4)))
+				} else {
+					let lit: syn::LitInt = syn::parse2(list.tokens.clone())
+						.map_err(|e| darling::Error::custom(format!("Failed to parse list tokens: {}", e)))?;
+					let value = lit.base10_parse::<u8>()
+						.map_err(|e| darling::Error::custom(format!("Invalid u8 value: {}", e)))?;
+					Ok(Multiline(Some(value)))
+				}
+			}
+		}
+	}
+}
 #[derive(Debug, FromField, FromVariant)]
 #[darling(attributes(inspect), default)]
 struct AttributeArgs {
@@ -22,12 +47,12 @@ struct AttributeArgs {
 	name: Option<String>,
 	/// Doesn't generate code for the given field
 	hidden: bool,
-	/// Doesn't call mut function for the given field (May be overridden by other params)
+	/// Display the field as readonly
 	read_only: bool,
-	/// Use slider function for numbers
+	/// Use slider function for numbers (need to define the range)
 	slider: bool,
-	/// Display mut text on multiple line
-	multiline: bool,
+	/// Display text on multiple line
+	multiline: Option<Multiline>,
 	/// Display mut vec3/vec4 with color
 	color: bool,
 	/// Min/Max values for numbers
@@ -43,7 +68,7 @@ impl Default for AttributeArgs {
 			hidden: false,
 			read_only: false,
 			slider: false,
-			multiline: false,
+			multiline: None,
 			color: false,
 			range: None ,
 			tooltip:None
@@ -102,10 +127,11 @@ fn get_code_for_struct(data: &DataStruct)  -> TokenStream {
 		Fields::Unit => quote! {}
 	}
 }
+/// Generate the code to edit an enum (the content of the ```inspect_with_custom_id``` method)
 fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
-	let mut selected_text_arms = Vec::new();
-	let mut selectable_blocks = Vec::new();
-	let mut ui_match_arms = Vec::new();
+	let mut variant_texts = Vec::new();
+	let mut variant_select_conditions = Vec::new();
+	let mut variant_content_edit = Vec::new();
 	let mut has_hidden = false;
 
 	for variant in &data_enum.variants {
@@ -131,16 +157,38 @@ fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 			continue;
 		}
 		match &variant.fields {
-			Fields::Unit => get_code_for_unit_variant(enum_name, variant_name, label, &mut selected_text_arms, &mut selectable_blocks, &mut ui_match_arms),
-			Fields::Unnamed(fields) => get_code_for_unamed_variant(enum_name, variant_name, label, fields, &mut selected_text_arms, &mut selectable_blocks, &mut ui_match_arms),
-			Fields::Named(fields) => get_code_for_named_variant(enum_name, variant_name, label, fields, &mut selected_text_arms, &mut selectable_blocks, &mut ui_match_arms)
+			Fields::Unit => get_code_blocks_for_unit_variant(
+				enum_name,
+				variant_name,
+				label, 
+				&mut variant_texts,
+				&mut variant_select_conditions,
+				&mut variant_content_edit
+			),
+			Fields::Unnamed(fields) => get_code_blocks_for_unamed_variant(
+				enum_name,
+				variant_name,
+				label,
+				fields,
+				&mut variant_texts,
+				&mut variant_select_conditions,
+				&mut variant_content_edit
+			),
+			Fields::Named(fields) => get_code_blocks_for_named_variant(
+				enum_name, variant_name,
+				label,
+				fields,
+				&mut variant_texts,
+				&mut variant_select_conditions,
+				&mut variant_content_edit
+			)
 
 		}
 	}
 	
 	if has_hidden {
-		selected_text_arms.push(quote!{_ => {""}});
-		ui_match_arms.push(quote! {_ => {} });
+		variant_texts.push(quote!{_ => {""}});
+		variant_content_edit.push(quote! {_ => {} });
 	}
 
 	quote_spanned! {
@@ -169,21 +217,21 @@ fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 						egui::ComboBox::from_id_salt(id)
 						.width(field_width)
 						.selected_text(match self {
-							#(#selected_text_arms)*
+							#(#variant_texts)*
 						})
 						.show_ui(ui, |ui| {
-							#(#selectable_blocks)*
+							#(#variant_select_conditions)*
 						});
 					});
 				});
 
 			match self {
-				#(#ui_match_arms)*
+				#(#variant_content_edit)*
 			}
 		}
 	}
 }
-
+/// Generate the code to edit an named struct (the content of the ```inspect_with_custom_id``` method)
 fn get_code_for_struct_named_fields(fields: &FieldsNamed) -> TokenStream {
 	let recurse = fields.named.iter().map(|f| {
 		let attrs;
@@ -213,14 +261,14 @@ fn get_code_for_struct_named_fields(fields: &FieldsNamed) -> TokenStream {
 				#(#recurse)*
 			};
 			if !label.is_empty() {
-				//ui.strong(label);
-				ui.collapsing(label, add_content);
+				egui::CollapsingHeader::new(label).id_salt(id).show(ui, add_content);
 			} else {
 				add_content(ui);
 			}
 		}
 	}
 }
+/// Generate the code to edit an unnamed struct (the content of the ```inspect_with_custom_id``` method)
 fn get_code_for_struct_unnamed_fields(fields: &FieldsUnnamed) -> TokenStream {
 	let mut recurse = Vec::new();
 	for (i,f) in fields.unnamed.iter().enumerate() {
@@ -249,7 +297,7 @@ fn get_code_for_struct_unnamed_fields(fields: &FieldsUnnamed) -> TokenStream {
 				#(#recurse)*
 			};
 			if !label.is_empty() {
-				ui.collapsing(label, add_content);
+				egui::CollapsingHeader::new(label).id_salt(id).show(ui, add_content);
 			} else {
 				add_content(ui);
 			}
@@ -257,40 +305,40 @@ fn get_code_for_struct_unnamed_fields(fields: &FieldsUnnamed) -> TokenStream {
 	};
 	result
 }
-
-fn get_code_for_unit_variant(
+/// Fill the ```variant_texts```, ```variant_select_conditions``` and ```variant_content_edit``` code blocks for a unit variant
+fn get_code_blocks_for_unit_variant(
 		enum_name: &Ident,
 		variant_name: &Ident,
 		label:String,
-		selected_text_arms:&mut Vec<TokenStream>,
-		selectable_blocks:&mut Vec<TokenStream>,
-		ui_match_arms:&mut Vec<TokenStream>) {
-	selected_text_arms.push(quote! {
+		variant_texts:&mut Vec<TokenStream>,
+		variant_select_conditions:&mut Vec<TokenStream>,
+		variant_content_edit:&mut Vec<TokenStream>) {
+	variant_texts.push(quote! {
 		#enum_name::#variant_name => #label,
 	});
 
-	selectable_blocks.push(quote! {
+	variant_select_conditions.push(quote! {
 		if ui.selectable_value(self, #enum_name::#variant_name, #label).changed() {
 			*self = #enum_name::#variant_name;
 		}
 	});
 
 
-	ui_match_arms.push(quote! {
+	variant_content_edit.push(quote! {
 		#enum_name::#variant_name => {
 			// nothing to edit
 		}
 	});
 }
-
-fn get_code_for_unamed_variant(
+/// Fill the ```variant_texts```, ```variant_select_conditions``` and ```variant_content_edit``` code blocks for a unamed fields variant
+fn get_code_blocks_for_unamed_variant(
 	enum_name: &Ident,
 	variant_name: &Ident,
 	label:String,
 	fields : &FieldsUnnamed,
-	selected_text_arms:&mut Vec<TokenStream>,
-	selectable_blocks:&mut Vec<TokenStream>,
-	ui_match_arms:&mut Vec<TokenStream>) {
+	variant_texts:&mut Vec<TokenStream>,
+	variant_select_conditions:&mut Vec<TokenStream>,
+	variant_content_edit:&mut Vec<TokenStream>) {
 
 	let default_value = if fields.unnamed.len() == 1 {
 		quote! { Default::default() }
@@ -301,11 +349,11 @@ fn get_code_for_unamed_variant(
 	};
 	let bindings_ignore = (0..fields.unnamed.len())
 		.map(|_i| Ident::new(&"_", proc_macro2::Span::call_site()));
-	selected_text_arms.push(quote! {
+	variant_texts.push(quote! {
 		#enum_name::#variant_name(#(#bindings_ignore),*) => #label,
 	});
 	
-	selectable_blocks.push(quote! {
+	variant_select_conditions.push(quote! {
 		if ui.selectable_value(self, #enum_name::#variant_name(#default_value), #label).changed() {
 			*self = #enum_name::#variant_name(#default_value);
 		}
@@ -341,7 +389,7 @@ fn get_code_for_unamed_variant(
 		utils::get_function_call(quote!{#fieldname}, f, &attr, format!("Field {i}"))
 	});
 	let bindings_for_match = bindings.clone();
-	ui_match_arms.push(quote! {
+	variant_content_edit.push(quote! {
 		#enum_name::#variant_name(#(#bindings_for_match),* ) => {
 			ui.indent(id, |ui| {
 				#(#recurse)*
@@ -349,15 +397,15 @@ fn get_code_for_unamed_variant(
 		}
 	});
 }
-
-fn get_code_for_named_variant(
+/// Fill the ```variant_texts```, ```variant_select_conditions``` and ```variant_content_edit``` code blocks for a named fields variant
+fn get_code_blocks_for_named_variant(
 		enum_name: &Ident,
 		variant_name: &Ident,
 		label:String,
 		fields : &FieldsNamed,
-		selected_text_arms:&mut Vec<TokenStream>,
-		selectable_blocks:&mut Vec<TokenStream>,
-		ui_match_arms:&mut Vec<TokenStream>) {
+		variant_texts:&mut Vec<TokenStream>,
+		variant_select_conditions:&mut Vec<TokenStream>,
+		variant_content_edit:&mut Vec<TokenStream>) {
 
 	let mut field_bindings = Vec::new();
 	let mut inspect_calls = Vec::new();
@@ -368,7 +416,7 @@ fn get_code_for_named_variant(
 			quote!{#name : _ }
 		}
 	).collect();
-	selected_text_arms.push(quote! {
+	variant_texts.push(quote! {
 		#enum_name::#variant_name{#(#bindings_ignore),*} => #label,
 	});
 	
@@ -378,7 +426,7 @@ fn get_code_for_named_variant(
 	}).collect::<Vec<_>>();
 	let default_value = quote! {  #(#defaults),* };
 
-	selectable_blocks.push(quote! {
+	variant_select_conditions.push(quote! {
 		if ui.selectable_value(self, #enum_name::#variant_name{#default_value}, #label).changed() {
 			*self = #enum_name::#variant_name { #default_value };
 		}
@@ -404,7 +452,7 @@ fn get_code_for_named_variant(
 		field_bindings.push(fieldname);
 	}
 
-	ui_match_arms.push(quote! {
+	variant_content_edit.push(quote! {
 		#enum_name::#variant_name { #( #field_bindings ),* } => {
 			ui.indent(id, |ui| {
 				#( #inspect_calls )*

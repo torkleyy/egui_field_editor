@@ -17,7 +17,7 @@ egui_inspect_derive = { path = "../egui_inspect_derive" }
 nalgebra-glm = { version = "0.20", features = [], optional=true }
 
 [features]
-default = ["nalgebra_glm"]
+default = []
 nalgebra_glm = ["dep:nalgebra-glm"]
 
 [dev-dependencies]

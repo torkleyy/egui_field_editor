@@ -1,21 +1,17 @@
 
-
 use egui::TextEdit;
 use egui_inspect::{DefaultEguiInspect, EguiInspector};
-
 use eframe::egui;
-
-
 
 #[derive(DefaultEguiInspect, Debug, Default)]
 pub struct TestData {
-	#[inspect(name="plip", multiline=false)]
+	#[inspect(name="plip", multiline)]
 	pub ploup:String,
 	#[inspect(name="data_test")]
 	pub data: Vec<TestData>,
 	#[inspect(read_only=false, hidden=false)]
 	pub f32:f32,
-	//#[inspect(multiline=true)]
+	#[inspect()]
 	pub f32_2:f32,
 	myenum:MyEnum
 }
@@ -32,7 +28,7 @@ pub enum MyEnum {
 }
 #[derive(DefaultEguiInspect, Debug, Default)]
 pub struct Test {
-	#[inspect(multiline=true)]
+	#[inspect(multiline=8)]
 	pub ploup:String,
 	pub data: Vec<TestData>,
 	pub u8: u8,

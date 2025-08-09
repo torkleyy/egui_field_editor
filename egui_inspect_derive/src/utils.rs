@@ -84,11 +84,12 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 				});
 			}
 		};
-	} else if attrs.multiline {
+	} else if let Some(multiline) = &attrs.multiline {
+		let nb_lines = multiline.0;
 		return quote_spanned! {
 			field.span() => {
 				ui.scope(|ui| {
-					<Self as egui_inspect::EguiInspect>::add_string_multiline(#field_access, &#name_str, #tooltip, read_only || #read_only, ui);
+					<Self as egui_inspect::EguiInspect>::add_string_multiline(#field_access, &#name_str, #tooltip, read_only || #read_only, #nb_lines, ui);
 				});
 			}
 		};

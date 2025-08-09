@@ -1,6 +1,6 @@
 use std::ops::Add;
 use egui::{Color32, Ui};
-
+ use std::hash::Hash;
 use crate::EguiInspect;
 
 macro_rules! impl_inspect_number {
@@ -62,17 +62,28 @@ impl<T: crate::EguiInspect, const N: usize> crate::EguiInspect for [T; N] {
 	}
 }
 
-/*
+// In order to use the index as id we need to implement DragDropItem for a wrapper struct
+struct EnumeratedItem<T> {
+	item: T,
+	index: usize,
+}
+
+impl<T: crate::EguiInspect + Default> egui_dnd::DragDropItem for EnumeratedItem<&mut T> {
+	fn id(&self) -> egui::Id {
+		egui::Id::new(self.index)
+	}
+}
+
 impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 	fn inspect_with_custom_id(
 		&mut self,
-		parent_id: Id,
+		parent_id: egui::Id,
 		label: &str,
 		tooltip: &str,
 		read_only: bool,
 		ui: &mut Ui,
 	) {
-		let id = if parent_id == Id::NULL {
+		let id = if parent_id == egui::Id::NULL {
 			ui.next_auto_id()
 		} else {
 			parent_id.with(label)
@@ -82,25 +93,34 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 			egui::CollapsingHeader::new(format!("{label} [{}]", self.len()))
 				.id_salt(id)
 				.show(ui, |ui| {
-					let mut dnd = DragAndDrop::default();
-
-					for i in 0..self.len() {
-						DragAndDrop::set_payload(dnd, 12);
-						dnd.source(ui, i, |ui| {
+					let response = egui_dnd::dnd(ui, "dnd_example")
+					// Since egui_dnd's animations rely on the ids not
+					// changing after the drag finished we need to disable animations
+					.with_animation_time(0.0)
+					.show(
+						self
+							.iter_mut()
+							.enumerate()
+							.map(|(i, item)| EnumeratedItem { item, index: i }),
+						|ui, item, handle, state| {
 							ui.horizontal(|ui| {
-								ui.label("⠿");
-								self[i].inspect_with_custom_id(
-									id.with(i),
-									&format!("Item {i}"),
-									tooltip,
-									read_only,
-									ui,
-								);
+								handle.ui(ui, |ui| {
+									if state.dragged {
+										ui.label("dragging");
+									} else {
+										ui.label("drag");
+									}
+								});
+								&item.item.inspect_with_custom_id(parent_id, label, tooltip, read_only, ui);
 							});
-						});
-					}
+						},
+					);
 
-					dnd.finish(ui, self);
+				// Since the item id may not change while a drag is ongoing we need to wait
+				// until the drag is finished before updating the items
+				if response.is_drag_finished() {
+					response.update_vec(self);
+				}
 				});
 		});
 
@@ -116,9 +136,13 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 			});
 		});
 	}
+	
+	fn inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+				self.inspect_with_custom_id(egui::Id::NULL, label, tooltip, read_only, ui);
+			}
 }
-*/
 
+/*
 impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui) {
 		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
@@ -145,7 +169,7 @@ impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 		});
 	}
 }
-
+*/
 impl crate::EguiInspect for Color32 {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 		crate::add_color(self, label, tooltip, read_only, ui);

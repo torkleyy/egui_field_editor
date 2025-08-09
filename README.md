@@ -31,6 +31,39 @@ See the following examples:
  * [manual_implement](egui_inspect/examples/manual_implement.rs): see [Implement `EguiInspect` yourself](#implement-eguiinspect-yourself)
 
 # Documentation
+## Available Attributes
+
+This derive allows customizing how fields are displayed in a user interface (UI), typically using egui. The following attributes can be applied to struct fields or enum variants to control their behavior and appearance.
+
+Usage syntax:
+```#[inspect(name = "Label", tooltip = "Info", read_only, hidden)]```
+
+List of attributes:
+
+- ```name``` (```String```):
+  Custom label to display in the UI instead of the field name.
+  Available on all field.
+- ```hidden``` (optional ```bool```) | optional = ```bool```:
+  If true, the field will not be shown in the UI.
+  Available on all field.
+- ```read_only``` (optional ```bool```) | optional = ```bool```:
+  Makes the field non-editable in the UI.
+  Available on all field.
+- ```multiline``` (optional ```u8```) | optional = ```u8```:
+  If set, display the text on multiple lines. If affected to u8, it defines the number of rows to display.
+  Available on fields implementing ```egui::TextBuffer```
+- ```slider``` (optional ```bool```) | optional = ```bool```:
+  Uses a slider widget for numeric fields. Requires the ```range``` attribute.
+  Available on fields implementing ```egui::emath::Numeric```
+- ```range``` (min = ```String```|```f32```, max = ```String```|```f32```):
+  Defines min/max bounds for sliders or numeric inputs.
+- ```color``` (optional ```bool```) | optional = ```bool```:
+  Treats a Vec3 or Vec4 field as a color and shows a color picker.
+- ```tooltip``` (```String```) | optional = ```String```:
+  Tooltip text shown when hovering over the field in the UI.
+
+
+
 ## Implement `EguiInspect` yourself
 The crate provides many default implementation of functions to edit basic types. So implementing in simple case is pretty straightforward.
 

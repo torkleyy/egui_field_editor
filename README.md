@@ -20,7 +20,7 @@ This is a side project, at a very early state, so the API might not be stable ye
 
 # Example
 <a href="resources/screen_anim.gif">
-  <img src="resources/screenshot.png" alt="Animated" width="400"/>
+  <img src="resources/screenshot.png" alt="Animated" width="100%"/>
 </a>
 
 To implement this example, you just need to add egui_inspect as dependency to your project, and then, when drawing you

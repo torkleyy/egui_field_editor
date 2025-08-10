@@ -73,7 +73,7 @@ List of attributes:
     Show calendar week in date picker popup. (Default: true)
     - ```show_icon```: (optional ```bool```)
     Show the calendar icon on the button. (Default: true)
-    - ```format```: ```String```,
+    - ```format```: ```String```
     Change the format shown on the button. (Default: %Y-%m-%d)
     See [`chrono::format::strftime`] for valid formats.
     - ```highlight_weekends```: (optional ```bool```)

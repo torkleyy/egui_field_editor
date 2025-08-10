@@ -1,12 +1,13 @@
 #![warn(missing_docs)]
-//! # egui_inspect
 //! This crate expose macros and traits to generate boilerplate code
 //! for structs inspection and edition.
 //!
 //! Basic usage would be
 //! ```
-//! use egui_inspect::*;
-//! #[derive(EguiInspect)]
+//! use egui_inspect::{EguiInspect, EguiInspector};
+//! use eframe::egui;
+//! 
+//! #[derive(EguiInspect, Default)]
 //! struct MyApp {
 //!     #[inspect(read_only)]
 //!     string: String,
@@ -15,6 +16,7 @@
 //!     #[inspect(range(min = 12.0, max = 53.0))]
 //!     unsigned32: u32,
 //!     #[inspect(hidden)]
+//! 	#[allow(dead_code)]
 //!     skipped: bool,
 //!     #[inspect(tooltip = "A boolean")]
 //!     boolean: bool,
@@ -24,11 +26,18 @@
 //!     #[inspect(name = "A proper field name")]
 //!     ugly_internal_field_name: u16,
 //! }
-//!
-//!
+//! 
+//! impl eframe::App for MyApp {
+//!     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+//!         egui::CentralPanel::default().show(ctx, |ui| {
+//!             ui.add(EguiInspector::new(self));
+//!         });
+//!     }
+//! }
+//! 
 //! fn main() {
-//!     let app = MyApp::default();
-//!     app.inspect("My App", &ui); // here `ui` would be some `&mut egui::Ui`
+//!     let options = eframe::NativeOptions::default();
+//!     let _ = eframe::run_native("EGui Inspector Very Simple Example", options, Box::new(|_cc| Ok(Box::new(MyApp::default()))));
 //! }
 //! ```
 //!
@@ -44,12 +53,38 @@
 //! - `range` *(min=f32, max=f32)*: Min/Max value for inspecting numbers
 //! - `multiline` *(optional u8)*: If set, display the text on multiple lines. If affected to u8, it defines the number of rows to display
 //! - `tooltip` *(String)*: Tooltip to display when cursor is hover
+//! - `date` *(DatePickerParams)*: Parameters to customize the Date Picker widget:
+//!   - ```combo_boxes```: *(optional ```bool```)*
+//!     Show combo boxes in date picker popup. (Default: true).
+//!   - ```arrows```: *(optional ```bool```)*
+//!     Show arrows in date picker popup. (Default: true).
+//!   - ```calendar```: *(optional ```bool```)*
+//!     Show calendar in date picker popup. (Default: true).
+//!   - ```calendar_week```: *(optional ```bool```)*
+//!     Show calendar week in date picker popup. (Default: true).
+//!   - ```show_icon```: *(optional ```bool```)*
+//!     Show the calendar icon on the button. (Default: true).
+//!   - ```format```: *```String```*
+//!     Change the format shown on the button. (Default: ```"%Y-%m-%d"```).
+//! 
+//!     See [`chrono::format::strftime`] for valid formats.
+//!   - ```highlight_weekends```: (optional ```bool```).
+//!     Highlight weekend days. (Default: true)
+//!   - ```start_end_years```: (min = ```String```|```f32```, max = ```String```|```f32```):
+//! 
+//!     Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
+//! 
+//!     This will limit the years you can choose from in the dropdown to the specified range.
+//! 
+//!     For example, if you want to provide the range of years from 2000 to 2035, you can use: `start_end_years(min=2000, max=2035)`.
 //!
 //! # Feature Flags
 //! This crate provides optional features to extend functionality with external libraries. You can enable them selectively to reduce compile time and dependency footprint.
-//! - `nalgebra_glm`: Enables inspection of nalgebra-glm types.
+//! - `nalgebra_glm`: Enables support for inspecting nalgebra-glm types like Vec3, Vec4, etc.
+//! 
 //!   This adds a dependency to [nalgebra-glm](https://docs.rs/nalgebra-glm/latest/nalgebra_glm/index.html).
 //! - `datepicker`: Enables date picker UI using chrono and egui_extras.
+//! 
 //!   This adds a dependency to [egui_extras](https://docs.rs/egui_extras/latest/egui_extras/index.html) datepicker feature and to [chrono](https://docs.rs/chrono/latest/chrono/).
 //! 
 //! ##  Default Features
@@ -57,14 +92,15 @@
 //! ```toml
 //! default = []
 //! ```
+//! 
 use std::ops::{Deref, DerefMut};
+use egui::{Color32, Response, Ui, Widget};
+#[cfg(feature = "nalgebra_glm")]
+use nalgebra_glm::*;
 #[cfg(feature = "datepicker")]
 use std::{hash::{Hash, Hasher}, ops::RangeInclusive};
 #[cfg(feature = "datepicker")]
 use chrono::NaiveDate;
-use egui::{Color32, Response, Ui, Widget};
-#[cfg(feature = "nalgebra_glm")]
-use nalgebra_glm::*;
 
 /// See also [EguiInspect]
 pub use egui_inspect_derive::*;
@@ -471,18 +507,18 @@ where
 /// Adds a date picker for date types.
 /// 
 /// # Parameters
-/// - `combo_boxes: Show combo boxes in date picker popup. (Default: true)
-/// - `arrows: Show arrows in date picker popup. (Default: true)
-/// - `calendar: Show calendar in date picker popup. (Default: true)
-/// - `calendar_week: Show calendar week in date picker popup. (Default: true)
-/// - `show_icon: Show the calendar icon on the button. (Default: true)
-/// - `format: Change the format shown on the button. (Default: %Y-%m-%d)
+/// - `combo_boxes`: Show combo boxes in date picker popup. (Default: true)
+/// - `arrows`: Show arrows in date picker popup. (Default: true)
+/// - `calendar`: Show calendar in date picker popup. (Default: true)
+/// - `calendar_week`: Show calendar week in date picker popup. (Default: true)
+/// - `show_icon`: Show the calendar icon on the button. (Default: true)
+/// - `format`: Change the format shown on the button. (Default: `"%Y-%m-%d"`)
+/// 
 ///    See [`chrono::format::strftime`] for valid formats.
-/// - `highlight_weekends: Highlight weekend days. (Default: true)
-/// - `start_end_years: Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
+/// - `highlight_weekends`: Highlight weekend days. (Default: true)
+/// - `start_end_years`: Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
+/// 
 ///    This will limit the years you can choose from in the dropdown to the specified range.
-///    For example, if you want to provide the range of years from 2000 to 2035, you can use:
-///    `start_end_years(min=2000, max=2035)`.
 /// 
 /// # See Also
 ///

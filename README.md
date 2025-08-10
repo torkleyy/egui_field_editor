@@ -19,8 +19,9 @@ You optionally can add a `nalgebra_glm` support which provide implementation of 
 This is a side project, at a very early state, so the API might not be stable yet.
 
 # Example
-![img.png](resources/screen_anim.gif)
-
+<a href="resources/screen_anim.gif">
+  <img src="resources/screenshot.png" alt="Animated" width="400"/>
+</a>
 
 To implement this example, you just need to add egui_inspect as dependency to your project, and then, when drawing you
 ui with egui, you need to give your `&Ui` to the inspect function, no need for additional input .

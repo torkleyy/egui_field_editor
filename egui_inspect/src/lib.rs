@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 //! # egui_inspect
 //! This crate expose macros and traits to generate boilerplate code
 //! for structs inspection and edition.
@@ -46,6 +47,8 @@
 //!
 
 
+use std::ops::{Deref, DerefMut};
+
 use egui::{Color32, Response, Ui, Widget};
 #[cfg(feature = "nalgebra_glm")]
 use nalgebra_glm::*;
@@ -53,17 +56,59 @@ use nalgebra_glm::*;
 /// See also [EguiInspect]
 pub use egui_inspect_derive::*;
 
+/// A wrapper widget that renders an object implementing [`EguiInspect`] inside an `egui` UI.
+///
+/// This struct provides a convenient way to embed an inspector view for any type that
+/// implements the [`EguiInspect`] trait. It supports toggling read-only mode and integrates
+/// seamlessly with `egui`'s layout system.
+///
+/// # Type Parameters
+///
+/// - `T`: The type to inspect, which must implement [`EguiInspect`].
+///
+/// # Fields
+///
+/// - `obj`: A mutable reference to the object being inspected.
+/// - `read_only`: If `true`, disables all interactive widgets.
+///
+/// # Examples
+///
+/// ```rust
+/// use egui_inspect::{EguiInspector, EguiInspect};
+/// #[derive(EguiInspect, Default, PartialEq)]
+/// enum MyConfig {
+///     #[default]
+///     None,
+///     ByName(String),
+///     ById(u32),
+///     ByNetwork{hostname:String, port:u16},
+/// }
+/// let mut config = MyConfig::default();
+/// let inspector = EguiInspector::new(&mut config, false);
+/// //ui.add(inspector);
+/// ```
+///
+/// # See Also
+///
+/// - [`EguiInspect`]
+/// - [`egui::Widget`]
 pub struct EguiInspector<'a, T : EguiInspect> {
 	obj: &'a mut T,
 	read_only: bool
 }
 impl<'a, T : EguiInspect> EguiInspector<'a, T> {
+	/// Creates a new inspector widget for the given object.
+	///
+	/// - `obj`: The object to inspect.
+	/// - `read_only`: Whether the inspector should be non-editable.
 	pub fn new(obj: &'a mut T, read_only: bool) -> Self {
 		Self { obj, read_only }
 	}
+	/// Returns whether the inspector is currently in read-only mode.
 	pub fn read_only(&self) -> bool {
 		self.read_only
 	}
+	/// Sets the read-only mode of the inspector.
 	pub fn set_read_only(&mut self, read_only: bool) {
 		self.read_only = read_only;
 	}
@@ -90,9 +135,19 @@ macro_rules! impl_only_numbers_struct_inspect {
 	($method:ident, $Type:ident, [$($field:ident),+]) => {
 		//Useless: only expanded if feature is on
 		//#[cfg(feature = "nalgebra_glm")]
-		pub fn $method(data: &mut $Type, label: &str, ui: &mut egui::Ui) {
-			ui.group(|ui| {
-				ui.label(label);
+		#[doc = concat!("Adds an editor for [`", stringify!($Type), "`] using `egui::DragValue` for each field.")]
+		#[doc = " "]
+		#[doc = "# Parameters"]
+		#[doc = "- `data`: Mutable reference to the `$Type` instance."]
+		#[doc = "- `label`: Label displayed above the group."]
+		#[doc = "- `tooltip`: Optional tooltip shown when hovering over the label."]
+		#[doc = "- `read_only`: If true, disables interaction."]
+		#[doc = "- `ui`: The `egui::Ui` to render into."]
+		#[doc = " "]
+		#[doc = "# See Also"]
+		#[doc = "- [`egui::DragValue`]"]
+		pub fn $method(data: &mut $Type, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+			crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
 				ui.horizontal(|ui| {
 					$(
 						ui.label(stringify!($field));
@@ -103,42 +158,14 @@ macro_rules! impl_only_numbers_struct_inspect {
 		}
 	}
 }
-#[derive(Clone, Debug, Copy)]
-pub struct MyColor32(egui::Color32);
-impl std::ops::Deref for MyColor32 {
-	type Target = egui::Color32;
-
-	fn deref(&self) -> &Self::Target {
-		&self.0
-	}
-}
-impl From<Color32> for MyColor32 {
-	fn from(value: Color32) -> Self {
-		Self(value)
-	}
-}
-impl From<MyColor32> for Color32 {
-	fn from(value: MyColor32) -> Self {
-		value.0
-	}
-}
-impl std::ops::DerefMut for MyColor32 {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.0
-	}
-}
-
 
 /// A trait for rendering custom UI inspectors using `egui`.
 ///
-/// This trait provides a set of helper methods to display labeled widgets with tooltips,
-/// layout control, and read-only support. It is designed to simplify the creation of
-/// property editors or debug panels.
+/// It is designed to simplify the creation of property editors or debug panels.
 ///
 /// # Overview
 ///
-/// - Use [`inspect`] or [`inspect_with_custom_id`] to start rendering a UI block.
-/// - Use `add_*` methods to render individual fields (numbers, strings, booleans, colors, etc.).
+/// - Use [`Self::inspect`] or [`Self::inspect_with_custom_id`] to start rendering a UI block.
 /// - All widgets support tooltips and read-only mode.
 /// - Layout is responsive: labels and fields are proportionally sized.
 ///
@@ -179,7 +206,7 @@ impl std::ops::DerefMut for MyColor32 {
 pub trait EguiInspect {
 	/// Renders the inspector UI for this object.
 	///
-	/// This is a convenience method that delegates to [`inspect_with_custom_id`] using a null ID.
+	/// This is a convenience method that delegates to [`Self::inspect_with_custom_id`] using a [NULL Id](egui::Id::NULL).
 	///
 	/// - `label`: Label displayed above the inspector block.
 	/// - `tooltip`: Tooltip shown when hovering over the label.
@@ -196,11 +223,18 @@ pub trait EguiInspect {
 }
 /// Adds a labeled widget to the UI with layout and tooltip support.
 ///
+/// If `read_only` is set to `true`, the slider will be disabled and the value cannot be changed.
+/// A tooltip will be shown when the user hovers over the label.
+/// 
 /// - `label`: Label shown to the left of the widget.
 /// - `widget`: The widget to render.
 /// - `tooltip`: Tooltip shown when hovering over the label.
 /// - `read_only`: If `true`, disables the widget.
 /// - `ui`: The `egui::Ui` to render into.
+/// 
+/// # See Also
+///
+/// - [`egui::Widget`]
 pub fn add_widget<T: egui::Widget>(label: &str, widget: T, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
 	let available_width = ui.available_width();
 	let label_width = available_width * 0.2;
@@ -222,6 +256,9 @@ pub fn add_widget<T: egui::Widget>(label: &str, widget: T, tooltip: &str, read_o
 }
 /// Adds a custom field with layout and tooltip support.
 ///
+/// If `read_only` is set to `true`, the slider will be disabled and the value cannot be changed.
+/// A tooltip will be shown when the user hovers over the label.
+/// 
 /// - `label`: Label shown to the left of the field.
 /// - `tooltip`: Tooltip shown when hovering over the label.
 /// - `read_only`: If `true`, disables the field.
@@ -263,6 +300,7 @@ where
 		});
 	}).response
 }
+
 /// Adds a numeric slider to the given `egui` UI.
 ///
 /// This function creates a horizontal slider widget that allows the user to adjust a numeric value
@@ -270,9 +308,8 @@ where
 /// `f32`, `f64`, `i32`, etc.
 ///
 /// If `read_only` is set to `true`, the slider will be disabled and the value cannot be changed.
-///
 /// A tooltip will be shown when the user hovers over the label.
-///
+/// 
 /// # Type Parameters
 ///
 /// - `Num`: A numeric type that implements [`egui::emath::Numeric`].
@@ -287,16 +324,10 @@ where
 /// - `max`: The maximum value of the slider range.
 /// - `ui`: The [`egui::Ui`] instance to which the slider will be added.
 ///
-/// # Example
-/// ```rust
-/// let mut value: f32 = 0.5;
-/// add_number_slider(&mut value, "Opacity", "Controls the transparency level", false, 0.0, 1.0, ui);
-/// ```
-///
 /// # See Also
 ///
 /// - [`egui::Slider`]
-/// - [`egui_inspect::add_number`]
+/// - [`add_number`]
 pub fn add_number_slider<Num: egui::emath::Numeric>(data: &mut Num, label: &str, tooltip: &str, read_only: bool, min:Num, max: Num, ui: &mut egui::Ui) {
 	let editor=egui::Slider::new(data, min..=max);
 	crate::add_custom_field(label, tooltip, read_only, ui, |ui, field_width| {
@@ -313,6 +344,11 @@ pub fn add_number_slider<Num: egui::emath::Numeric>(data: &mut Num, label: &str,
 /// - `minmax`: Optional `(min, max)` range.
 /// - `ui`: The `egui::Ui` to render into.
 /// See full documentation in [`add_number_slider`].
+/// 
+/// # See Also
+///
+/// - [`egui::DragValue`]
+/// - [`add_number`]
 pub fn add_number<Num: egui::emath::Numeric>(data: &mut Num, label: &str, tooltip: &str, read_only: bool, minmax: Option<(Num, Num)>, ui: &mut egui::Ui) {
 	let mut editor=egui::DragValue::new(data);
 	if let Some(minmax) = minmax {
@@ -322,21 +358,37 @@ pub fn add_number<Num: egui::emath::Numeric>(data: &mut Num, label: &str, toolti
 }
 
 /// Adds a single-line text field.
+/// 
+/// # See Also
+///
+/// - [`egui::TextEdit::singleline`]
 pub fn add_string_singleline<'t>(data: &'t mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
 	crate::add_widget(label, egui::TextEdit::singleline(data), tooltip, read_only, ui)
 }
 
 /// Adds a multi-line text field with a specified number of visible lines.
+/// 
+/// # See Also
+///
+/// - [`egui::TextEdit::multiline`]
 pub fn add_string_multiline<'t>(data: &'t mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, nb_lines: u8, ui: &mut egui::Ui) -> egui::Response {
 	crate::add_widget(label, egui::TextEdit::multiline(data).desired_rows(nb_lines as usize), tooltip, read_only, ui)
 }
 
 /// Adds a boolean checkbox.
+/// 
+/// # See Also
+///
+/// - [`egui::Checkbox`]
 pub fn add_bool(data: &mut bool, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
 	crate::add_widget(label, egui::Checkbox::new(data, ""), tooltip, read_only, ui)
 }
 
-/// Adds a color picker for `egui::Color32`.
+/// Adds a color picker for [`egui::Color32`].
+/// 
+/// # See Also
+///
+/// - [`egui::Ui::color_edit_button_srgba`]
 pub fn add_color32(data: &mut egui::Color32, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
 	let available_width = ui.available_width();
 	let label_width = available_width * 0.2;
@@ -356,20 +408,73 @@ pub fn add_color32(data: &mut egui::Color32, label: &str, tooltip: &str, read_on
 	}).response
 }
 
-/// Adds a color picker for custom color types convertible to/from `MyColor32`.
-pub fn add_color<T>(data: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response where
-	MyColor32: From<T>,
-	T : From<MyColor32>,
+/// Adds a color picker for custom color types convertible to/from [`Color32Wrapper`].
+/// 
+/// # See Also
+///
+/// - [`egui::Ui::color_edit_button_srgba`]
+pub fn add_color<T>(data: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response
+where
+	Color32Wrapper: From<T>,
+	T : From<Color32Wrapper>,
 	T : Clone {
 	
 	crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_width| {
-		let mut color: MyColor32 = data.clone().into();
+		let mut color: Color32Wrapper = data.clone().into();
 		if ui.color_edit_button_srgba(&mut color).changed() {
 			*data = color.into();
 		}
 	})
-		
 }
+
+
+/// An utility wrapper around [`egui::Color32`].
+///
+/// This wrapper is useful when you want to:
+/// - Implement custom traits or methods on top of `Color32`
+/// - Use `Deref` to access `Color32` fields directly
+/// - Maintain compatibility with `egui` while adding abstraction
+///
+/// # Trait Implementations
+///
+/// - [`Clone`], [`Copy`], [`Debug`] for ergonomic use
+/// - [`From<Color32>`] and [`From<Color32Wrapper>`] for conversion
+/// - [`Deref`] and [`DerefMut`] to access `Color32` transparently
+///
+/// # See Also
+///
+/// - [`egui::Color32`]
+#[derive(Clone, Debug, Copy)]
+pub struct Color32Wrapper(egui::Color32);
+impl From<Color32> for Color32Wrapper {
+	fn from(value: Color32) -> Self {
+		Self(value)
+	}
+}
+impl From<Color32Wrapper> for Color32 {
+	fn from(value: Color32Wrapper) -> Self {
+		value.0
+	}
+}
+impl Deref for Color32Wrapper {
+	type Target = egui::Color32;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+impl DerefMut for Color32Wrapper {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.0
+	}
+}
+impl PartialEq for Color32Wrapper {
+	fn eq(&self, other: &Self) -> bool {
+		self.0 == other.0
+	}
+}
+impl Eq for Color32Wrapper {}
+
 #[cfg(feature = "nalgebra_glm")]
 impl_only_numbers_struct_inspect!(add_vec2, Vec2, [x, y]);
 #[cfg(feature = "nalgebra_glm")]
@@ -432,4 +537,5 @@ impl_only_numbers_struct_inspect!(add_vec3i64, I64Vec3, [x, y, z]);
 impl_only_numbers_struct_inspect!(add_vec4i64, I64Vec4, [x, y, z, w]);
 #[cfg(feature = "nalgebra_glm")]
 
+/// Implementations of EguiInspect for some basic types
 pub mod base_type_inspect;

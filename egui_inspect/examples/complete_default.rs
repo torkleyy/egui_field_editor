@@ -1,6 +1,7 @@
 
 use egui_inspect::{EguiInspect, EguiInspector};
-use egui::{Color32, TextEdit};
+use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
+use egui::Color32;
 use eframe::egui;
 
 macro_rules! generate_struct_tuple {
@@ -99,13 +100,13 @@ struct MyApp {
 
 impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-		let mut code = include_str!("complete_default.rs");
+		let code = include_str!("complete_default.rs");
 		egui::SidePanel::right("right_panel").show(ctx, |ui| {
 			ui.add(EguiInspector::new(self, false));
 		});
 		egui::CentralPanel::default().show(ctx, |ui| {
 			egui::ScrollArea::vertical().id_salt("code_scrolling").show(ui, |ui| {
-				ui.add_sized(ui.available_size(), TextEdit::multiline(&mut code).code_editor());
+				code_view_ui(ui, &CodeTheme::default(), code, "rust");
 			});
 		});
 	}

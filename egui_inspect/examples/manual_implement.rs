@@ -1,4 +1,5 @@
-use egui::{Color32, TextEdit};
+use egui::Color32;
+use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use egui_inspect::EguiInspector;
 
 impl Default for MyStruct {
@@ -8,13 +9,13 @@ impl Default for MyStruct {
 }
 impl eframe::App for MyStruct {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-		let mut code = include_str!("simple.rs");
+		let code = include_str!("simple.rs");
 		egui::SidePanel::right("right_panel").show(ctx, |ui| {
 			ui.add(EguiInspector::new(self, false));
 		});
 		egui::CentralPanel::default().show(ctx, |ui| {
 			egui::ScrollArea::vertical().id_salt("code_scrolling").show(ui, |ui| {
-				ui.add_sized(ui.available_size(), TextEdit::multiline(&mut code).code_editor());
+				code_view_ui(ui, &CodeTheme::default(), code, "rust");
 			});
 		});
 	}
@@ -52,5 +53,5 @@ impl egui_inspect::EguiInspect for MyStruct {
 
 fn main() {
 	let options = eframe::NativeOptions::default();
-	let _ = eframe::run_native("EGui Inspector Simple Example", options, Box::new(|_cc| Ok(Box::new(MyStruct::default()))));
+	let _ = eframe::run_native("EGui Inspector Custom Implementation Example", options, Box::new(|_cc| Ok(Box::new(MyStruct::default()))));
 }

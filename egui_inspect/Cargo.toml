@@ -23,6 +23,7 @@ nalgebra_glm = ["dep:nalgebra-glm"]
 
 [dev-dependencies]
 eframe = "0.32.0"
+egui_extras = { version = "*", features = ["all_loaders"] }
 
 [[example]]
 name = "nalgebra_glm"

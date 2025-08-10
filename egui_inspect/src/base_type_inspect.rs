@@ -217,7 +217,7 @@ mod nalgebra_ui {
 	use egui::Color32;
 	use nalgebra_glm::*;
 	use crate::EguiInspect;
-	use crate::MyColor32;
+	use crate::Color32Wrapper;
 
 	macro_rules! impl_only_numbers_struct_inspect {
 	($Type:ident, [$($field:ident),+]) => {
@@ -268,45 +268,45 @@ mod nalgebra_ui {
 	impl_only_numbers_struct_inspect!(I64Vec4, [x, y, z, w]);
 
 
-	impl From<MyColor32> for Vec3 {
-		fn from(value: MyColor32) -> Self {
+	impl From<Color32Wrapper> for Vec3 {
+		fn from(value: Color32Wrapper) -> Self {
 			Vec3::new(value.0.r() as f32 / 255.,value.0.g() as f32 / 255.,value.0.b() as f32 / 255.)
 		}
 	}
-	impl From<Vec3> for MyColor32 {
+	impl From<Vec3> for Color32Wrapper {
 		fn from(value: Vec3) -> Self {
 			Self(Color32::from_rgb((value.x * 255.) as u8,(value.y * 255.) as u8,(value.z * 255.) as u8))
 		}
 	}
 
-	impl From<MyColor32> for Vec4 {
-		fn from(value: MyColor32) -> Self {
+	impl From<Color32Wrapper> for Vec4 {
+		fn from(value: Color32Wrapper) -> Self {
 			Vec4::new(value.0.r() as f32 / 255.,value.0.g() as f32 / 255.,value.0.b() as f32 / 255.,value.0.a() as f32 / 255.)
 		}
 	}
-	impl From<Vec4> for MyColor32 {
+	impl From<Vec4> for Color32Wrapper {
 		fn from(value: Vec4) -> Self {
 			Self(Color32::from_rgba_premultiplied((value.x * 255.) as u8,(value.y * 255.) as u8,(value.z * 255.) as u8,(value.w * 255.) as u8))
 		}
 	}
 
-	impl From<MyColor32> for U8Vec3 {
-		fn from(value: MyColor32) -> Self {
+	impl From<Color32Wrapper> for U8Vec3 {
+		fn from(value: Color32Wrapper) -> Self {
 			U8Vec3::new(value.0.r(),value.0.g(),value.0.b())
 		}
 	}
-	impl From<U8Vec3> for MyColor32 {
+	impl From<U8Vec3> for Color32Wrapper {
 		fn from(value: U8Vec3) -> Self {
 			Self(Color32::from_rgb(value.x,value.y,value.z))
 		}
 	}
 
-	impl From<MyColor32> for U8Vec4 {
-		fn from(value: MyColor32) -> Self {
+	impl From<Color32Wrapper> for U8Vec4 {
+		fn from(value: Color32Wrapper) -> Self {
 			U8Vec4::new(value.0.r(),value.0.g(),value.0.b(),value.0.a())
 		}
 	}
-	impl From<U8Vec4> for MyColor32 {
+	impl From<U8Vec4> for Color32Wrapper {
 		fn from(value: U8Vec4) -> Self {
 			Self(Color32::from_rgba_premultiplied(value.x,value.y,value.z,value.w))
 		}

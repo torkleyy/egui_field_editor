@@ -1,4 +1,5 @@
 # egui_inspect
+![crates.io](https://img.shields.io/crates/v/egui_inspect.svg)
 ![crates.io](https://img.shields.io/crates/l/egui_inspect.svg)
 
 This crate is intended to provide some rust helper macros to automatically generate boilerplate code to inspect
@@ -18,8 +19,7 @@ You optionally can add a `nalgebra_glm` support which provide implementation of 
 This is a side project, at a very early state, so the API might not be stable yet.
 
 # Example
-
-![img.png](resources/screenshot.png)
+![img.png](resources/screen_anim.gif)
 
 
 To implement this example, you just need to add egui_inspect as dependency to your project, and then, when drawing you
@@ -32,7 +32,6 @@ See the following examples:
 
 # Documentation
 ## Available Attributes
-
 This derive allows customizing how fields are displayed in a user interface (UI), typically using egui. The following attributes can be applied to struct fields or enum variants to control their behavior and appearance.
 
 Usage syntax:
@@ -65,7 +64,7 @@ List of attributes:
 
 
 ## Implement `EguiInspect` yourself
-The crate provides many default implementation of functions to edit basic types. So implementing in simple case is pretty straightforward.
+The crate provides many default implementation of functions to edit basic types. So implementing in simple cases is pretty straightforward.
 
 For example:
 ```rust
@@ -107,13 +106,12 @@ The trait `EguiInspect` provide two methods :
 
 The first method is a convenience wrapper: it’s implemented by default and simply calls the second one using parent_id = Id::NULL.
 
-### So Why Have Both?
-
+### Why Have Both?
 Egui internally tracks widget state—such as whether a collapsible section is open, the scroll position, and other UI dynamics. To do this reliably, widgets that maintain state need a unique `Id`.
 By default, egui generates these IDs automatically. However, this can lead to inconsistencies when the UI structure changes dynamically, especially if the auto-generated IDs don’t remain stable across frames.
 That’s where `inspect_with_custom_id` comes in. It allows you to explicitly pass a `parent_id`, which helps maintain consistent and conflict-free IDs.
 
 ### How It Works
-When `inspect_with_custom_id` is called, the implementation combines the parent_id with the widget’s label to generate a unique ID. This composite `Id` is then used for the widget itself and passed down to its children. This hierarchical `Id` scheme helps avoid `Id` collisions (at least, I hope) and should ensures stable widget behavior even when the UI changes.
+When `inspect_with_custom_id` is called, the implementation combines the parent_id with the widget’s label to generate a unique ID. This composite `Id` is then used for the widget itself and passed down to its children. This hierarchical `Id` scheme helps avoid `Id` collisions (at least, I hope) and should ensures stable widget behavior even when the UI changes. When parent_id = Id::NULL, egui auto generated `Id`s are used.
 
 

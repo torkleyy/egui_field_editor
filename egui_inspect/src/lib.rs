@@ -47,14 +47,16 @@
 //!
 //! # Feature Flags
 //! This crate provides optional features to extend functionality with external libraries. You can enable them selectively to reduce compile time and dependency footprint.
+//! - `nalgebra_glm`: Enables inspection of nalgebra-glm types.
+//!   This adds a dependency to [nalgebra-glm](https://docs.rs/nalgebra-glm/latest/nalgebra_glm/index.html).
+//! - `datepicker`: Enables date picker UI using chrono and egui_extras.
+//!   This adds a dependency to [egui_extras](https://docs.rs/egui_extras/latest/egui_extras/index.html) datepicker feature and to [chrono](https://docs.rs/chrono/latest/chrono/).
 //! 
-//! #  Default Features
+//! ##  Default Features
+//! No features are activated by default.
 //! ```toml
 //! default = []
 //! ```
-//! The crate proposes support for:
-//! - `nalgebra_glm`: Enables inspection of nalgebra-glm types.
-//! - `datepicker`: Enables date picker UI using chrono and egui_extras.
 use std::ops::{Deref, DerefMut};
 #[cfg(feature = "datepicker")]
 use std::{hash::{Hash, Hasher}, ops::RangeInclusive};
@@ -142,7 +144,7 @@ impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 		self.read_only = true;
 		self
 	}
-	/// A source for the unique [`Id`], e.g. `.id_salt("second_scroll_area")` or `.id_salt(loop_index)`.
+	/// A source for the unique [`egui::Id`], e.g. `.id_salt("second_scroll_area")` or `.id_salt(loop_index)`.
 	#[inline]
 	pub fn id_salt(mut self, id_salt: impl std::hash::Hash) -> Self {
 		self.id_salt = Some(egui::Id::new(id_salt));

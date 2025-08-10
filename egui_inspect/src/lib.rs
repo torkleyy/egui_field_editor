@@ -114,8 +114,6 @@ impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 	/// Creates a new inspector widget for the given object.
 	///
 	/// - `obj`: The object to inspect.
-	/// - `read_only`: Whether the inspector should be non-editable.
-	/// - `initial_id`: Optional inital path.
 	pub fn new(obj: &'a mut T) -> Self {
 		Self { obj, read_only: false, id_salt: None }
 	}
@@ -139,7 +137,8 @@ impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 	pub fn new_read_only_with_salt_id(obj: &'a mut T, id_salt: impl std::hash::Hash) -> Self {
 		Self { obj, read_only: true, id_salt: Some(egui::Id::new(id_salt)) }
 	}
-	/// Returns whether the inspector is currently in read-only mode.
+	/// Set read-only mode.
+	#[inline]
 	pub fn read_only(mut self) -> Self {
 		self.read_only = true;
 		self

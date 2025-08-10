@@ -220,21 +220,21 @@ mod nalgebra_ui {
 	use crate::Color32Wrapper;
 
 	macro_rules! impl_only_numbers_struct_inspect {
-	($Type:ident, [$($field:ident),+]) => {
-		impl EguiInspect for $Type {
-			fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-				crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
-					ui.horizontal(|ui| {
-						$(
-							ui.label(stringify!($field));
-							ui.add(egui::DragValue::new(&mut self.$field).speed(0.1));
-						)+
+		($Type:ident, [$($field:ident),+]) => {
+			impl EguiInspect for $Type {
+				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+					crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
+						ui.horizontal(|ui| {
+							$(
+								ui.label(stringify!($field));
+								ui.add(egui::DragValue::new(&mut self.$field).speed(0.1));
+							)+
+						});
 					});
-				});
+				}
 			}
-		}
-	};
-}
+		};
+	}
 
 	impl_only_numbers_struct_inspect!(Vec2, [x, y]);
 	impl_only_numbers_struct_inspect!(Vec3, [x, y, z]);
@@ -312,4 +312,26 @@ mod nalgebra_ui {
 		}
 	}
 
+}
+#[cfg(feature = "datepicker")]
+mod datepicker {
+	use std::hash::{Hash, Hasher};
+
+use crate::EguiInspect;
+	use chrono::prelude::*;
+	use egui_extras::DatePickerButton;
+	impl EguiInspect for NaiveDate {
+		fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+			let id = if parent_id == egui::Id::NULL { egui::Id::NULL } else { parent_id.with(label) };
+			let widget = DatePickerButton::new(self);
+			if id != egui::Id::NULL {
+				// Ugly hack because DatePickerButton::id_salt() taking a &str
+				let mut hasher = std::hash::DefaultHasher::new();
+				id.hash(&mut hasher);
+				crate::add_widget(label, widget.id_salt(format!("{}", hasher.finish()).as_str()), tooltip, read_only, ui);
+			} else {
+				crate::add_widget(label, widget, tooltip, read_only, ui);
+			}
+		}
+	}
 }

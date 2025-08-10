@@ -61,8 +61,28 @@ List of attributes:
   Treats a Vec3 or Vec4 field as a color and shows a color picker.
 - ```tooltip``` (```String```) | optional = ```String```:
   Tooltip text shown when hovering over the field in the UI.
-
-
+- ```date``` (```Date```)
+  The date picker parameters:
+    - ```combo_boxes```: (optional ```bool```)
+    Show combo boxes in date picker popup. (Default: true)
+    - ```arrows```: (optional ```bool```)
+    Show arrows in date picker popup. (Default: true)
+    - ```calendar```: (optional ```bool```)
+    Show calendar in date picker popup. (Default: true)
+    - ```calendar_week```: (optional ```bool```)
+    Show calendar week in date picker popup. (Default: true)
+    - ```show_icon```: (optional ```bool```)
+    Show the calendar icon on the button. (Default: true)
+    - ```format```: ```String```,
+    Change the format shown on the button. (Default: %Y-%m-%d)
+    See [`chrono::format::strftime`] for valid formats.
+    - ```highlight_weekends```: (optional ```bool```)
+    Highlight weekend days. (Default: true)
+    - ```start_end_years```: (min = ```String```|```f32```, max = ```String```|```f32```):
+    Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
+    This will limit the years you can choose from in the dropdown to the specified range.
+    For example, if you want to provide the range of years from 2000 to 2035, you can use: `start_end_years(min=2000, max=2035)`.
+	
 
 ## Implement `EguiInspect` yourself
 The crate provides many default implementation of functions to edit basic types. So implementing in simple cases is pretty straightforward.

@@ -47,8 +47,9 @@
 //!
 
 
-use std::ops::{Deref, DerefMut};
+use std::{hash::{Hash, Hasher}, ops::{Deref, DerefMut, RangeInclusive}};
 
+use chrono::NaiveDate;
 use egui::{Color32, Response, Ui, Widget};
 #[cfg(feature = "nalgebra_glm")]
 use nalgebra_glm::*;
@@ -94,15 +95,37 @@ pub use egui_inspect_derive::*;
 /// - [`egui::Widget`]
 pub struct EguiInspector<'a, T : EguiInspect> {
 	obj: &'a mut T,
-	read_only: bool
+	read_only: bool,
+	id_salt: Option<egui::Id>
 }
 impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 	/// Creates a new inspector widget for the given object.
 	///
 	/// - `obj`: The object to inspect.
 	/// - `read_only`: Whether the inspector should be non-editable.
-	pub fn new(obj: &'a mut T, read_only: bool) -> Self {
-		Self { obj, read_only }
+	/// - `initial_id`: Optional inital path.
+	pub fn new(obj: &'a mut T) -> Self {
+		Self { obj, read_only: false, id_salt: None }
+	}
+	/// Creates a new read only inspector widget for the given object.
+	///
+	/// - `obj`: The object to inspect.
+	pub fn new_read_only(obj: &'a mut T) -> Self {
+		Self { obj, read_only: true, id_salt: None }
+	}
+	/// Creates a new inspector widget for the given object.
+	///
+	/// - `obj`: The object to inspect.
+	/// - `id_salt`: Optional inital path.
+	pub fn new_with_salt_id(obj: &'a mut T, id_salt: impl std::hash::Hash) -> Self {
+		Self { obj, read_only: false, id_salt: Some(egui::Id::new(id_salt)) }
+	}
+	/// Creates a new read only inspector widget for the given object.
+	///
+	/// - `obj`: The object to inspect.
+	/// - `id_salt`: Optional inital path.
+	pub fn new_read_only_with_salt_id(obj: &'a mut T, id_salt: impl std::hash::Hash) -> Self {
+		Self { obj, read_only: true, id_salt: Some(egui::Id::new(id_salt)) }
 	}
 	/// Returns whether the inspector is currently in read-only mode.
 	pub fn read_only(&self) -> bool {
@@ -112,6 +135,13 @@ impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 	pub fn set_read_only(&mut self, read_only: bool) {
 		self.read_only = read_only;
 	}
+	/// A source for the unique [`Id`], e.g. `.id_salt("second_scroll_area")` or `.id_salt(loop_index)`.
+	#[inline]
+	pub fn id_salt(mut self, id_salt: impl std::hash::Hash) -> Self {
+		self.id_salt = Some(egui::Id::new(id_salt));
+		self
+	}
+
 }
 
 impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
@@ -122,7 +152,11 @@ impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
 		ui.heading("Inspector");
 		egui::ScrollArea::vertical().show(ui, |ui| {
 			ui.set_min_width(available_width);
-			self.obj.inspect("", "", self.read_only, ui);
+			if let Some(salt) = self.id_salt {
+				self.obj.inspect_with_custom_id(salt, "", "", self.read_only, ui);
+			} else {
+				self.obj.inspect("", "", self.read_only, ui);
+			}
 		});
 
 		ui.response()
@@ -426,7 +460,57 @@ where
 		}
 	})
 }
+/// Adds a date picker for date types.
+/// 
+/// # Parameters
+/// - `combo_boxes: Show combo boxes in date picker popup. (Default: true)
+/// - `arrows: Show arrows in date picker popup. (Default: true)
+/// - `calendar: Show calendar in date picker popup. (Default: true)
+/// - `calendar_week: Show calendar week in date picker popup. (Default: true)
+/// - `show_icon: Show the calendar icon on the button. (Default: true)
+/// - `format: Change the format shown on the button. (Default: %Y-%m-%d)
+///    See [`chrono::format::strftime`] for valid formats.
+/// - `highlight_weekends: Highlight weekend days. (Default: true)
+/// - `start_end_years: Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
+///    This will limit the years you can choose from in the dropdown to the specified range.
+///    For example, if you want to provide the range of years from 2000 to 2035, you can use:
+///    `start_end_years(min=2000, max=2035)`.
+/// 
+/// # See Also
+///
+/// - [`egui::Ui::color_edit_button_srgba`]
+pub fn add_date(data: &mut NaiveDate, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool,
+		combo_boxes: bool,
+		arrows: bool,
+		calendar: bool,
+		calendar_week: bool,
+		show_icon: bool,
+		format: String,
+		highlight_weekends: bool,
+		start_end_years: Option<RangeInclusive<i32>>,
+		ui: &mut egui::Ui) {
 
+	let id = if parent_id == egui::Id::NULL { egui::Id::NULL } else { parent_id.with(label) };
+	let mut widget = egui_extras::DatePickerButton::new(data)
+		.combo_boxes(combo_boxes)
+		.arrows(arrows)
+		.calendar(calendar)
+		.calendar_week(calendar_week)
+		.show_icon(show_icon)
+		.format(format)
+		.highlight_weekends(highlight_weekends);
+	if let Some(start_end_years)=start_end_years {
+		widget = widget.start_end_years(start_end_years);
+	}
+	if id != egui::Id::NULL {
+		// Ugly hack because DatePickerButton::id_salt() taking a &str
+		let mut hasher = std::hash::DefaultHasher::new();
+		id.hash(&mut hasher);
+		crate::add_widget(label, widget.id_salt(format!("{}", hasher.finish()).as_str()), tooltip, read_only, ui);
+	} else {
+		crate::add_widget(label, widget, tooltip, read_only, ui);
+	}
+}
 
 /// An utility wrapper around [`egui::Color32`].
 ///

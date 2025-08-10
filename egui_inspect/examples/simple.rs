@@ -46,7 +46,7 @@ impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 		let code = include_str!("simple.rs");
 		egui::SidePanel::right("right_panel").show(ctx, |ui| {
-			ui.add(EguiInspector::new(&mut self.0, false));
+			ui.add(EguiInspector::new(&mut self.0));
 		});
 		egui::CentralPanel::default().show(ctx, |ui| {
 			egui::ScrollArea::vertical().id_salt("code_scrolling").show(ui, |ui| {

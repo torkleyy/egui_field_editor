@@ -7,8 +7,60 @@ use syn::{
 use darling::{FromField, FromMeta, FromVariant};
 
 mod utils;
-
 #[derive(Debug, FromMeta)]
+struct Date {
+	/// Show combo boxes in date picker popup. (Default: true)
+	#[darling(default = "default_true")]
+	combo_boxes: bool,
+	/// Show arrows in date picker popup. (Default: true)
+	#[darling(default = "default_true")]
+	arrows: bool,
+	/// Show calendar in date picker popup. (Default: true)
+	#[darling(default = "default_true")]
+	calendar: bool,
+	/// Show calendar week in date picker popup. (Default: true)
+	#[darling(default = "default_true")]
+	calendar_week: bool,
+	/// Show the calendar icon on the button. (Default: true)
+	#[darling(default = "default_true")]
+	show_icon: bool,
+	/// Change the format shown on the button. (Default: %Y-%m-%d)
+	/// See [`chrono::format::strftime`] for valid formats.
+	#[darling(default = "default_format")]
+	format: String,
+	/// Highlight weekend days. (Default: true)
+	#[darling(default = "default_true")]
+	highlight_weekends: bool,
+	/// Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
+	/// This will limit the years you can choose from in the dropdown to the specified range.
+	///
+	/// For example, if you want to provide the range of years from 2000 to 2035, you can use:
+	/// `start_end_years(min=2000, max=2035)`.
+	#[darling(default)]
+	start_end_years: Option<Range>,
+}
+fn default_true() -> bool {
+	true
+}
+
+fn default_format() -> String {
+	"%Y-%m-%d".to_owned()
+}
+impl Default for Date {
+	fn default() -> Self {
+		Self {
+			combo_boxes: true,
+			arrows: true,
+			calendar: true,
+			calendar_week: true,
+			show_icon: true,
+			format: "%Y-%m-%d".to_owned(),
+			highlight_weekends: true,
+			start_end_years: None,
+		}
+	}
+}
+#[derive(Debug, Clone, FromMeta)]
 struct Range {
 	#[darling(default)]
 	min: f32,
@@ -58,7 +110,9 @@ struct AttributeArgs {
 	/// Min/Max values for numbers
 	range: Option<Range>,
 	/// Tooltip for the field
-	tooltip: Option<String>
+	tooltip: Option<String>,
+	/// Date picker options
+	date: Option<Date>
 }
 
 impl Default for AttributeArgs {
@@ -71,7 +125,8 @@ impl Default for AttributeArgs {
 			multiline: None,
 			color: false,
 			range: None ,
-			tooltip:None
+			tooltip:None,
+			date: None
 		}
 	}
 }

@@ -95,8 +95,36 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 	} else if attrs.color {
 		return quote_spanned! {field.span() => {
 				ui.scope(|ui| {
-					//egui_inspect::InspectColor::inspect_color(#field_access, _parent_id, &#name_str, ui);
 					egui_inspect::add_color(#field_access, &#name_str, #tooltip, read_only || #read_only, ui);
+				});
+			}
+		};
+	} else if let Some(date) = &attrs.date {
+		let combo_boxes=date.combo_boxes;
+		let arrows=date.arrows;
+		let calendar=date.calendar;
+		let calendar_week=date.calendar_week;
+		let show_icon=date.show_icon;
+		let format=date.format.to_owned();
+		let highlight_weekends=date.highlight_weekends;
+		let mut start_end_years = quote_spanned!{field.span() => {None}};
+		if let Some(range) = &date.start_end_years {
+			let min = range.min as i32;
+			let max = range.max as i32;
+			start_end_years = quote_spanned!{field.span() => {Some(#min..=#max)}};
+		}
+		return quote_spanned! {field.span() => {
+				ui.scope(|ui| {
+					egui_inspect::add_date(#field_access, id, &#name_str, #tooltip, read_only || #read_only,
+						#combo_boxes,
+						#arrows,
+						#calendar,
+						#calendar_week,
+						#show_icon,
+						#format.to_string(),
+						#highlight_weekends,
+						#start_end_years,
+						ui);
 				});
 			}
 		};

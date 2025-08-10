@@ -16,16 +16,24 @@ egui = "0.32.0"
 egui_dnd = "0.13.0"
 egui_inspect_derive = { path = "../egui_inspect_derive" }
 nalgebra-glm = { version = "0.20", features = [], optional=true }
+egui_extras = { version = "0.32", features = ["syntect", "datepicker"], optional=true }
+chrono = { version = "0.4.41", features = [], optional=true }
 
 [features]
-default = ["nalgebra_glm"]
+default = ["nalgebra_glm", "datepicker"]
 nalgebra_glm = ["dep:nalgebra-glm"]
+datepicker = ["dep:egui_extras", "egui_extras/datepicker", "dep:chrono"]
 
 [dev-dependencies]
 eframe = "0.32.0"
-egui_extras = { version = "*", features = ["all_loaders"] }
+egui_extras = { version = "0.32", features = ["syntect"] }
 
 [[example]]
 name = "nalgebra_glm"
 path = "examples/nalgebra_glm.rs"
 required-features = ["nalgebra_glm"]
+
+[[example]]
+name = "datepicker"
+path = "examples/datepicker.rs"
+required-features = ["datepicker"]

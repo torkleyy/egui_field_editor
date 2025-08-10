@@ -317,7 +317,7 @@ mod nalgebra_ui {
 mod datepicker {
 	use std::hash::{Hash, Hasher};
 
-use crate::EguiInspect;
+	use crate::EguiInspect;
 	use chrono::prelude::*;
 	use egui_extras::DatePickerButton;
 	impl EguiInspect for NaiveDate {

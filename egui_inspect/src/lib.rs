@@ -45,10 +45,20 @@
 //! - `multiline` *(optional u8)*: If set, display the text on multiple lines. If affected to u8, it defines the number of rows to display
 //! - `tooltip` *(String)*: Tooltip to display when cursor is hover
 //!
-
-
-use std::{hash::{Hash, Hasher}, ops::{Deref, DerefMut, RangeInclusive}};
-
+//! # Feature Flags
+//! This crate provides optional features to extend functionality with external libraries. You can enable them selectively to reduce compile time and dependency footprint.
+//! 
+//! #  Default Features
+//! ```toml
+//! default = []
+//! ```
+//! The crate proposes support for:
+//! - `nalgebra_glm`: Enables inspection of nalgebra-glm types.
+//! - `datepicker`: Enables date picker UI using chrono and egui_extras.
+use std::ops::{Deref, DerefMut};
+#[cfg(feature = "datepicker")]
+use std::{hash::{Hash, Hasher}, ops::RangeInclusive};
+#[cfg(feature = "datepicker")]
 use chrono::NaiveDate;
 use egui::{Color32, Response, Ui, Widget};
 #[cfg(feature = "nalgebra_glm")]
@@ -128,12 +138,9 @@ impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 		Self { obj, read_only: true, id_salt: Some(egui::Id::new(id_salt)) }
 	}
 	/// Returns whether the inspector is currently in read-only mode.
-	pub fn read_only(&self) -> bool {
-		self.read_only
-	}
-	/// Sets the read-only mode of the inspector.
-	pub fn set_read_only(&mut self, read_only: bool) {
-		self.read_only = read_only;
+	pub fn read_only(mut self) -> Self {
+		self.read_only = true;
+		self
 	}
 	/// A source for the unique [`Id`], e.g. `.id_salt("second_scroll_area")` or `.id_salt(loop_index)`.
 	#[inline]
@@ -478,7 +485,8 @@ where
 /// 
 /// # See Also
 ///
-/// - [`egui::Ui::color_edit_button_srgba`]
+/// - [`egui_extras::DatePickerButton`]
+#[cfg(feature = "datepicker")]
 pub fn add_date(data: &mut NaiveDate, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool,
 		combo_boxes: bool,
 		arrows: bool,
@@ -619,7 +627,6 @@ impl_only_numbers_struct_inspect!(add_vec2i64, I64Vec2, [x, y]);
 impl_only_numbers_struct_inspect!(add_vec3i64, I64Vec3, [x, y, z]);
 #[cfg(feature = "nalgebra_glm")]
 impl_only_numbers_struct_inspect!(add_vec4i64, I64Vec4, [x, y, z, w]);
-#[cfg(feature = "nalgebra_glm")]
 
 /// Implementations of EguiInspect for some basic types
 pub mod base_type_inspect;

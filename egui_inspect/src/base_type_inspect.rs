@@ -224,17 +224,49 @@ mod nalgebra_ui {
 			impl EguiInspect for $Type {
 				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 					crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
-						ui.horizontal(|ui| {
+						ui.group(|ui| {
+							ui.horizontal(|ui| {
 							$(
 								ui.label(stringify!($field));
 								ui.add(egui::DragValue::new(&mut self.$field).speed(0.1));
 							)+
+							});
 						});
 					});
 				}
 			}
 		};
 	}
+	macro_rules! impl_mat_inspect {
+		($Type:ident, [$( [$($field:ident),+] ),+]) => {
+			impl EguiInspect for $Type {
+				fn inspect_with_custom_id(
+					&mut self,
+					_parent_id: egui::Id,
+					label: &str,
+					tooltip: &str,
+					read_only: bool,
+					ui: &mut egui::Ui,
+				) {
+					crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
+						ui.vertical(|ui| {
+							ui.group(|ui| {
+								$(
+									ui.horizontal(|ui| {
+										$(
+											ui.label(stringify!($field));
+											ui.add(egui::DragValue::new(&mut self.$field).speed(0.1));
+										)+
+									});
+								)+
+							});
+						});
+					});
+				}
+			}
+		};
+	}
+
 
 	impl_only_numbers_struct_inspect!(Vec2, [x, y]);
 	impl_only_numbers_struct_inspect!(Vec3, [x, y, z]);
@@ -266,8 +298,18 @@ mod nalgebra_ui {
 	impl_only_numbers_struct_inspect!(I64Vec2, [x, y]);
 	impl_only_numbers_struct_inspect!(I64Vec3, [x, y, z]);
 	impl_only_numbers_struct_inspect!(I64Vec4, [x, y, z, w]);
-
-
+	impl_only_numbers_struct_inspect!(Quat, [i, j, k, w]);
+	impl_only_numbers_struct_inspect!(DQuat, [i, j, k, w]);
+	impl_mat_inspect!(Mat2x2, [[m11, m12], [m21, m22]]);
+	impl_mat_inspect!(Mat2x3, [[m11, m12, m13], [m21, m22, m23]]);
+	impl_mat_inspect!(Mat2x4, [[m11, m12, m13, m14], [m21, m22, m23, m24]]);
+	impl_mat_inspect!(Mat3x2, [[m11, m12], [m21, m22], [m31, m32]]);
+	impl_mat_inspect!(Mat3x3, [[m11, m12, m13], [m21, m22, m23], [m31, m32, m33]]);
+	impl_mat_inspect!(Mat3x4, [[m11, m12, m13, m14], [m21, m22, m23, m24], [m31, m32, m33, m34]]);
+	impl_mat_inspect!(Mat4x2, [[m11, m12], [m21, m22], [m31, m32], [m41, m42]]);
+	impl_mat_inspect!(Mat4x3, [[m11, m12, m13], [m21, m22, m23], [m31, m32, m33], [m41, m42, m43]]);
+	impl_mat_inspect!(Mat4x4, [[m11, m12, m13, m14], [m21, m22, m23, m24], [m31, m32, m33, m34], [m41, m42, m43, m44]]);
+	
 	impl From<Color32Wrapper> for Vec3 {
 		fn from(value: Color32Wrapper) -> Self {
 			Vec3::new(value.0.r() as f32 / 255.,value.0.g() as f32 / 255.,value.0.b() as f32 / 255.)

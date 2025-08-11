@@ -2,11 +2,9 @@
 ![crates.io](https://img.shields.io/crates/v/egui_inspect.svg)
 ![crates.io](https://img.shields.io/crates/l/egui_inspect.svg)
 
-This crate is intended to provide some rust helper macros to automatically generate boilerplate code to inspect
-structures
+This crate is intended to provide some rust helper macros to automatically generate boilerplate code to inspect structures or enums.
 
 Its goals are:
-
 - to provide as much compile-time generated code as possible, avoiding conditional branches at runtime
 - to be hyper user-friendly
 
@@ -14,22 +12,30 @@ This crate provide a `EguiInspect` trait which is necessary for a struct or enum
 types, and can be implemented for user created types with the macro `#[derive(EguiInspect)]`.
 If every underlying types implements `EguiInspect`, then you will be able to inspect it.
 
-You optionally can add a `nalgebra_glm` support which provide implementation of `EguiInspect` for `nalgebra_glm` types.
+You optionally can add the `nalgebra_glm` feature which provide implementation of `EguiInspect` for `nalgebra_glm` types and the `datapicker` feature which provide implementation of `EguiInspect` for `NaiveDate`.
 
-This is a side project, at a very early state, so the API might not be stable yet.
+This is a side project, so the API might not be stable yet.
 
 # Example
 <a href="resources/screen_anim.gif">
   <img src="resources/screenshot.png" alt="Animated" width="100%"/>
 </a>
 
-To implement this example, you just need to add egui_inspect as dependency to your project, and then, when drawing you
-ui with egui, you need to give your `&Ui` to the inspect function, no need for additional input .
+You can add a reference to this crate in your Cargo.toml:
+```toml
+[dependencies]
+egui_inspect = { git = "https://github.com/ultrasuperpingu/egui_inspect.git", features=["all"] }
+egui_inspect_derive = { git = "https://github.com/ultrasuperpingu/egui_inspect.git" }
+```
+
+And then, instantiate a EguiInspector giving it a mutable reference to the object to inspect.
+
 See the following examples:
  * [simple](egui_inspect/examples/simple.rs): a simple example
- * [nalgebra_glm](egui_inspect/examples/nalgebra_glm.rs): example with `nalgebra_glm` types.
- * [complete](egui_inspect/examples/complete_default.rs): example aiming to be a test case by displaying all supported types/enum/structs.
+ * [advanced](egui_inspect/examples/advanced.rs): features more advanced features.
  * [manual_implement](egui_inspect/examples/manual_implement.rs): see [Implement `EguiInspect` yourself](#implement-eguiinspect-yourself)
+ * [nalgebra_glm](egui_inspect/examples/nalgebra_glm.rs): example with `nalgebra_glm` types.
+ * [datepicker](egui_inspect/examples/datepicker.rs): example with `NaiveDate`.
 
 # Documentation
 ## Available Attributes
@@ -39,7 +45,6 @@ Usage syntax:
 ```#[inspect(name = "Label", tooltip = "Info", read_only, hidden)]```
 
 List of attributes:
-
 - ```name``` (```String```):
   Custom label to display in the UI instead of the field name.
   Available on all field.
@@ -52,16 +57,18 @@ List of attributes:
 - ```multiline``` (optional ```u8```) | optional = ```u8```:
   If set, display the text on multiple lines. If affected to u8, it defines the number of rows to display.
   Available on fields implementing ```egui::TextBuffer```
-- ```slider``` (optional ```bool```) | optional = ```bool```:
-  Uses a slider widget for numeric fields. Requires the ```range``` attribute.
+- ```slider``` (min = ```String```|```f32```, max = ```String```|```f32```):
+  Uses a slider widget for numeric fields with specified min/max values.
   Available on fields implementing ```egui::emath::Numeric```
 - ```range``` (min = ```String```|```f32```, max = ```String```|```f32```):
   Defines min/max bounds for sliders or numeric inputs.
 - ```color``` (optional ```bool```) | optional = ```bool```:
-  Treats a Vec3 or Vec4 field as a color and shows a color picker.
+  Treats compatible fields as a color and shows a color picker.
 - ```tooltip``` (```String```) | optional = ```String```:
   Tooltip text shown when hovering over the field in the UI.
-- ```date``` (```Date```)
+- ```from_string```: (``bool``)
+  Force edition from string conversion (needs type to implement [`FromStr`] and [`Display`])
+- ```date``` (```DatePickerParams```)
   The date picker parameters:
     - ```combo_boxes```: (optional ```bool```)
     Show combo boxes in date picker popup. (Default: true)
@@ -78,14 +85,17 @@ List of attributes:
     See [`chrono::format::strftime`] for valid formats.
     - ```highlight_weekends```: (optional ```bool```)
     Highlight weekend days. (Default: true)
-    - ```start_end_years```: (min = ```String```|```f32```, max = ```String```|```f32```):
+    - ```start_end_years```: (min = ```String```|```i32```, max = ```String```|```i32```):
+
     Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
+
     This will limit the years you can choose from in the dropdown to the specified range.
+
     For example, if you want to provide the range of years from 2000 to 2035, you can use: `start_end_years(min=2000, max=2035)`.
 	
 
 ## Implement `EguiInspect` yourself
-The crate provides many default implementation of functions to edit basic types. So implementing in simple cases is pretty straightforward.
+The crate provides many functions to edit basic types. So implementing in simple cases is pretty straightforward.
 
 For example:
 ```rust
@@ -120,6 +130,7 @@ impl egui_inspect::EguiInspect for MyStruct {
 }
 ```
 See the [manual_implement](egui_inspect/examples/manual_implement.rs) example
+
 ## Why 2 inspect methods ?
 The trait `EguiInspect` provide two methods :
  * `fn inspect(&mut self, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui);`
@@ -133,6 +144,6 @@ By default, egui generates these IDs automatically. However, this can lead to in
 That’s where `inspect_with_custom_id` comes in. It allows you to explicitly pass a `parent_id`, which helps maintain consistent and conflict-free IDs.
 
 ### How It Works
-When `inspect_with_custom_id` is called, the implementation combines the parent_id with the widget’s label to generate a unique ID. This composite `Id` is then used for the widget itself and passed down to its children. This hierarchical `Id` scheme helps avoid `Id` collisions (at least, I hope) and should ensures stable widget behavior even when the UI changes. When parent_id = Id::NULL, egui auto generated `Id`s are used.
+When `inspect_with_custom_id` is called, the implementation combines the parent_id with the widget’s label to generate a unique ID. This composite `Id` is then used for the widget itself and passed down to its children. This hierarchical `Id` scheme helps avoid `Id` collisions (at least, I hope) and should ensures stable widget behavior even when the UI changes. When `parent_id = Id::NULL`, egui auto generated `Id`s are used.
 
 

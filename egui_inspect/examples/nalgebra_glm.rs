@@ -43,6 +43,8 @@ pub enum TestEnum {
 		I64Vec2,
 		I64Vec3,
 		I64Vec4,
+		Quat,
+		DQuat,
 		Mat2x2,
 		Mat2x3,
 		Mat2x4,
@@ -97,6 +99,17 @@ pub enum TestEnum {
 		vec2i64: I64Vec2,
 		vec3i64: I64Vec3,
 		vec4i64: I64Vec4,
+		quat:    Quat,
+		dquat:   DQuat,
+		mat2x2:  Mat2x2,
+		mat2x3:  Mat2x3,
+		mat2x4:  Mat2x4,
+		mat3x2:  Mat3x2,
+		mat3x3:  Mat3x3,
+		mat3x4:  Mat3x4,
+		mat4x2:  Mat4x2,
+		mat4x3:  Mat4x3,
+		mat4x4:  Mat4x4
 	},
 	ColorsNamed{
 		#[inspect(color)]
@@ -153,6 +166,17 @@ pub struct TestNamedStructVectors {
 	pub vec2i64: I64Vec2,
 	pub vec3i64: I64Vec3,
 	pub vec4i64: I64Vec4,
+	pub quat:    Quat,
+	pub dquat:   DQuat,
+	pub mat2x2:  Mat2x2,
+	pub mat2x3:  Mat2x3,
+	pub mat2x4:  Mat2x4,
+	pub mat3x2:  Mat3x2,
+	pub mat3x3:  Mat3x3,
+	pub mat3x4:  Mat3x4,
+	pub mat4x2:  Mat4x2,
+	pub mat4x3:  Mat4x3,
+	pub mat4x4:  Mat4x4
 }
 
 #[derive(EguiInspect, Default)]
@@ -199,6 +223,17 @@ pub struct TestTupleStructVectors(
 	pub I64Vec2,
 	pub I64Vec3,
 	pub I64Vec4,
+	pub Quat,
+	pub DQuat,
+	pub Mat2x2,
+	pub Mat2x3,
+	pub Mat2x4,
+	pub Mat3x2,
+	pub Mat3x3,
+	pub Mat3x4,
+	pub Mat4x2,
+	pub Mat4x3,
+	pub Mat4x4,
 );
 
 
@@ -219,11 +254,11 @@ impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 		let code = include_str!("nalgebra_glm.rs");
 		egui::SidePanel::right("right_panel").show(ctx, |ui| {
-			ui.add(EguiInspector::new(self));
+			ui.add(EguiInspector::new(self).with_title("Inpector"));
 		});
 		egui::CentralPanel::default().show(ctx, |ui| {
 			egui::ScrollArea::vertical().id_salt("code_scrolling").show(ui, |ui| {
-				code_view_ui(ui, &CodeTheme::default(), code, "rust");
+				code_view_ui(ui, &CodeTheme::default(), code, "Rust");
 			});
 		});
 	}
@@ -231,5 +266,5 @@ impl eframe::App for MyApp {
 
 fn main() {
 	let options = eframe::NativeOptions::default();
-	let _ = eframe::run_native("EGui Inspector NAlgebra Example", options, Box::new(|_cc| Ok(Box::new(MyApp::default()))));
+	let _ = eframe::run_native("EGui Inspector NAlgebra-glm Example", options, Box::new(|_cc| Ok(Box::new(MyApp::default()))));
 }

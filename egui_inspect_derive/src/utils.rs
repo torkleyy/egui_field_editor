@@ -7,11 +7,11 @@ use syn::{Field};
 use crate::AttributeArgs;
 
 #[allow(dead_code)]
-pub fn get_path_str(type_path: &Type) -> Option<String> {
-	Some(quote::ToTokens::to_token_stream(&type_path).to_string())
+pub fn get_path_str(type_path: &Type) -> String {
+	quote::ToTokens::to_token_stream(&type_path).to_string()
 }
 
-fn prettify_name(s: &String) -> String {
+fn prettify_name(s: &str) -> String {
 	s.split('_')
 		.filter(|part| !part.is_empty())
 		.map(|word| {
@@ -33,7 +33,7 @@ fn prettify_name(s: &String) -> String {
 			if digits.is_empty() {
 				capitalized
 			} else {
-				format!("{} {}", capitalized, digits)
+				format!("{capitalized} {digits}")
 			}
 		})
 		.collect::<Vec<_>>()
@@ -54,36 +54,53 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 		},
 	};
 	let read_only = attrs.read_only;
+	let slider= &attrs.slider;
 	let range= &attrs.range;
 	let mut tooltip = "";
 	if let Some(ttip) = attrs.tooltip.as_ref() {
 		tooltip = ttip;
 	}
-	if attrs.slider {
-		if let Some(range) = range {
-			let min = range.min;
-			let max = range.max;
-			let ty = proc_macro2::Ident::new(&get_path_str(&field.ty).unwrap(), proc_macro2::Span::call_site()); 
-			return quote_spanned! {field.span() => {
-					ui.scope(|ui| {
-						egui_inspect::add_number_slider(#field_access, &#name_str, #tooltip, read_only || #read_only, #min as #ty, #max as #ty, ui);
-					});
-				}
-			};
-		} else {
-			return quote_spanned! { field.span() => {compile_error!("range is mandatory with slider".into()); } };
-		}
+	if let Some(range) = slider {
+		let min = range.min;
+		let max = range.max;
+		let ty = proc_macro2::Ident::new(&get_path_str(&field.ty), proc_macro2::Span::call_site()); 
+		return quote_spanned! {
+			field.span() => {
+				ui.scope(|ui| {
+					egui_inspect::add_number_slider(#field_access, &#name_str, #tooltip, read_only || #read_only, #min as #ty, #max as #ty, ui);
+				});
+			}
+		};
 	} else if let Some(range) = range {
 		let min = range.min;
 		let max = range.max;
-		let ty = proc_macro2::Ident::new(&get_path_str(&field.ty).unwrap(), proc_macro2::Span::call_site()); 
+		let ty = proc_macro2::Ident::new(&get_path_str(&field.ty), proc_macro2::Span::call_site()); 
 		return quote_spanned! {field.span() => {
 				ui.scope(|ui| {
 					egui_inspect::add_number(#field_access, &#name_str, #tooltip, read_only || #read_only, Some((#min as #ty, #max as #ty)), ui);
 				});
 			}
 		};
-	} else if let Some(multiline) = &attrs.multiline {
+	} else if attrs.from_string {
+		if let Some(multiline) = &attrs.multiline {
+			let nb_lines = multiline.0;
+			return quote_spanned! {
+				field.span() => {
+					ui.scope(|ui| {
+						egui_inspect::add_string_convertible_multiline(#field_access, &#name_str, #tooltip, read_only || #read_only, #nb_lines, ui);
+					});
+				}
+			};
+		} else {
+			return quote_spanned! {
+				field.span() => {
+					ui.scope(|ui| {
+						egui_inspect::add_string_convertible(#field_access, &#name_str, #tooltip, read_only || #read_only, ui);
+					});
+				}
+			};
+		}
+	}else if let Some(multiline) = &attrs.multiline {
 		let nb_lines = multiline.0;
 		return quote_spanned! {
 			field.span() => {
@@ -109,8 +126,8 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 		let highlight_weekends=date.highlight_weekends;
 		let mut start_end_years = quote_spanned!{field.span() => {None}};
 		if let Some(range) = &date.start_end_years {
-			let min = range.min as i32;
-			let max = range.max as i32;
+			let min = range.min;
+			let max = range.max;
 			start_end_years = quote_spanned!{field.span() => {Some(#min..=#max)}};
 		}
 		return quote_spanned! {field.span() => {

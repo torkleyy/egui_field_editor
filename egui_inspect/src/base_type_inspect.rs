@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex, RwLock};
 use std::ops::Add;
 use egui::{Color32, Ui};
 use crate::EguiInspect;
@@ -27,13 +30,62 @@ impl<T:EguiInspect> EguiInspect for &mut T {
 	}
 }
 
+impl<T:EguiInspect> EguiInspect for Box<T> {
+	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		<T as EguiInspect>::inspect_with_custom_id(&mut *self, parent_id, label, tooltip, read_only, ui);
+	}
+}
+impl<T: EguiInspect> EguiInspect for Rc<RefCell<T>> {
+	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		if let Ok(mut inner) = self.try_borrow_mut() {
+			inner.inspect_with_custom_id(parent_id, label, tooltip, read_only, ui);
+		} else {
+			ui.label("🔒 Already borrowed");
+		}
+	}
+}
+impl<T: EguiInspect> EguiInspect for Arc<Mutex<T>> {
+	fn inspect_with_custom_id(
+		&mut self,
+		parent_id: egui::Id,
+		label: &str,
+		tooltip: &str,
+		read_only: bool,
+		ui: &mut Ui,
+	) {
+		match self.lock() {
+			Ok(mut inner) => {
+				inner.inspect_with_custom_id(parent_id, label, tooltip, read_only, ui);
+			}
+			Err(_) => {
+				ui.label("❌ Failed to acquire lock");
+			}
+		}
+	}
+}
+impl<T: EguiInspect> EguiInspect for Arc<RwLock<T>> {
+	fn inspect_with_custom_id(
+		&mut self,
+		parent_id: egui::Id,
+		label: &str,
+		tooltip: &str,
+		read_only: bool,
+		ui: &mut Ui,
+	) {
+		match self.write() {
+			Ok(mut inner) => {
+				inner.inspect_with_custom_id(parent_id, label, tooltip, read_only, ui);
+			}
+			Err(_) => {
+				ui.label("❌ Failed to acquire write lock");
+			}
+		}
+	}
+}
+
 impl crate::EguiInspect for &'static str {
-	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, _read_only: bool, ui: &mut egui::Ui) {
-		ui.horizontal(|ui| {
-			ui.label(label.to_owned() + ":").on_hover_text(tooltip).on_disabled_hover_text(tooltip);
-			ui.colored_label(Color32::from_rgb(255, 0, 0), self.to_string())
-				.on_hover_text("inspect_mut is not implemented for &'static str");
-		});
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		crate::add_string_singleline(self, label, tooltip, read_only, ui);
 	}
 }
 
@@ -48,83 +100,134 @@ impl crate::EguiInspect for bool {
 		crate::add_bool(self, label, tooltip, read_only, ui);
 	}
 }
+struct CharString(String);
+impl CharString {
+	fn new(char: char) -> Self {
+		let mut str=String::new();
+		str.push(char);
+		Self(str)
+	}
+	fn char(&self) -> char {
+		self.0.chars().nth(0).unwrap() //safety: no method allow to get self.0.len() != 1
+	}
+}
+impl egui::TextBuffer for CharString {
+	fn is_mutable(&self) -> bool { true }
+	fn as_str(&self) -> &str {
+		self.0.as_str()
+	}
+	fn insert_text(&mut self, text: &str, _char_index: usize) -> usize {
+		if !text.is_empty() {
+			let mut str=String::new();
+			str.push(text.chars().nth(0).unwrap()); //safety: text is not empty so it has a first char
+			self.0 = str;
+		}
+		0
+	}
+	fn delete_char_range(&mut self, _char_range: std::ops::Range<usize>) { }
+	fn type_id(&self) -> std::any::TypeId {
+		std::any::TypeId::of::<Self>()
+	}
+}
+impl crate::EguiInspect for char {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		let mut string = CharString::new(*self);
+		crate::add_string_singleline( &mut string, label, tooltip, read_only, ui);
+		*self=string.char();
+	}
+}
+
+/// Convenient struct to store a dragable item
+struct EnumeratedItem<T> {
+	item: T,
+	index: usize,
+	salt_id: egui::Id
+}
+
+impl<T: crate::EguiInspect> egui_dnd::DragDropItem for EnumeratedItem<&mut T> {
+	fn id(&self) -> egui::Id {
+		egui::Id::new(self.salt_id.with(self.index))
+	}
+}
 
 impl<T: crate::EguiInspect, const N: usize> crate::EguiInspect for [T; N] {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui) {
 		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
-		egui::CollapsingHeader::new(label.to_string().add(format!("[{N}]").as_str())).show(ui, |ui| {
-			for (i, item) in self.iter_mut().enumerate() {
-				item.inspect_with_custom_id(parent_id, format!("Item {i}").as_str(), tooltip, read_only, ui);
-			}
+		egui::CollapsingHeader::new(label.to_string().add(format!("[{N}]").as_str())).id_salt(id.with("collapse")).show(ui, |ui| {
+			let response = egui_dnd::dnd(ui, id.with("dnd"))
+				.with_animation_time(0.0)
+				.show(
+					self
+						.iter_mut()
+						.enumerate()
+						.map(|(i, item)| EnumeratedItem { item, index: i, salt_id:id }),
+					|ui, item, handle, state| {
+						ui.horizontal(|ui| {
+							handle.ui(ui, |ui| {
+								if state.dragged {
+									ui.label("≡");
+								} else {
+									ui.label("☰");
+								}
+							});
+							let index = item.index;
+							item.item.inspect_with_custom_id(parent_id, format!("Item {index}").as_str(), tooltip, read_only, ui);
+						});
+					},
+				);
+				if response.is_drag_finished() {
+					response.update_vec(self);
+				}
 		});
-	}
-}
-
-struct EnumeratedItem<T> {
-	item: T,
-	index: usize,
-}
-
-impl<T: crate::EguiInspect + Default> egui_dnd::DragDropItem for EnumeratedItem<&mut T> {
-	fn id(&self) -> egui::Id {
-		egui::Id::new(self.index)
 	}
 }
 
 impl<T: crate::EguiInspect + Default> crate::EguiInspect for Vec<T> {
 	fn inspect_with_custom_id(
 		&mut self,
-		parent_id: egui::Id,
+		_parent_id: egui::Id,
 		label: &str,
 		tooltip: &str,
 		read_only: bool,
 		ui: &mut Ui,
 	) {
-		let id = if parent_id == egui::Id::NULL {
-			ui.next_auto_id()
-		} else {
-			parent_id.with(label)
-		};
-
-		ui.horizontal_top(|ui| {
-			egui::CollapsingHeader::new(format!("{label} [{}]", self.len()))
-				.id_salt(id)
-				.show(ui, |ui| {
-					let response = egui_dnd::dnd(ui, id.with("dnd"))
-					.with_animation_time(0.0)
-					.show(
-						self
-							.iter_mut()
-							.enumerate()
-							.map(|(i, item)| EnumeratedItem { item, index: i }),
-						|ui, item, handle, state| {
-							ui.horizontal(|ui| {
-								handle.ui(ui, |ui| {
-									if state.dragged {
-										ui.label("≡");
-									} else {
-										ui.label("☰");
-									}
-								});
-								let index = item.index;
-								item.item.inspect_with_custom_id(parent_id, format!("Item {index}").as_str(), tooltip, read_only, ui);
+		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
+		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
+		egui::CollapsingHeader::new(label.to_string().add(format!("[{}]", self.len()).as_str())).id_salt(id.with("collapse")).show(ui, |ui| {
+			let response = egui_dnd::dnd(ui, id.with("dnd"))
+				.with_animation_time(0.0)
+				.show(
+					self
+						.iter_mut()
+						.enumerate()
+						.map(|(i, item)| EnumeratedItem { item, index: i, salt_id:id}),
+					|ui, item, handle, state| {
+						ui.horizontal(|ui| {
+							handle.ui(ui, |ui| {
+								if state.dragged {
+									ui.label("≡");
+								} else {
+									ui.label("☰");
+								}
 							});
-						},
-					);
+							let index = item.index;
+							item.item.inspect_with_custom_id(parent_id, format!("Item {index}").as_str(), tooltip, read_only, ui);
+						});
+					},
+				);
 				if response.is_drag_finished() {
 					response.update_vec(self);
 				}
-			});
 		});
 
 		ui.add_enabled_ui(!read_only, |ui| {
 			ui.horizontal_top(|ui| {
 				ui.add_space(ui.available_width() - 50.);
-				if ui.button("+").clicked() {
+				if ui.add(egui::Button::new("+").min_size(egui::Vec2::new(20.,20.))).clicked() {
 					self.push(T::default());
 				}
-				if ui.button("-").clicked() {
+				if ui.add(egui::Button::new("-").min_size(egui::Vec2::new(20.,20.))).clicked() {
 					self.pop();
 				}
 			});
@@ -199,7 +302,7 @@ impl<T : EguiInspect> crate::EguiInspect for Option<T>
 				ui.indent(id, |ui| {
 					field0.inspect_with_custom_id(
 						parent_id,
-						&"",
+						"",
 						"",
 						read_only,
 						ui,
@@ -223,7 +326,7 @@ mod nalgebra_ui {
 		($Type:ident, [$($field:ident),+]) => {
 			impl EguiInspect for $Type {
 				fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-					crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
+					crate::add_custom_ui(label, tooltip, read_only, ui, |ui, _field_size| {
 						ui.group(|ui| {
 							ui.horizontal(|ui| {
 							$(
@@ -248,7 +351,7 @@ mod nalgebra_ui {
 					read_only: bool,
 					ui: &mut egui::Ui,
 				) {
-					crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
+					crate::add_custom_ui(label, tooltip, read_only, ui, |ui, _field_size| {
 						ui.vertical(|ui| {
 							ui.group(|ui| {
 								$(
@@ -367,7 +470,7 @@ mod datepicker {
 			let id = if parent_id == egui::Id::NULL { egui::Id::NULL } else { parent_id.with(label) };
 			let widget = DatePickerButton::new(self);
 			if id != egui::Id::NULL {
-				// Ugly hack because DatePickerButton::id_salt() taking a &str
+				// Ugly hack because DatePickerButton::id_salt() needs a &str
 				let mut hasher = std::hash::DefaultHasher::new();
 				id.hash(&mut hasher);
 				crate::add_widget(label, widget.id_salt(format!("{}", hasher.finish()).as_str()), tooltip, read_only, ui);

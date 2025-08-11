@@ -1,8 +1,10 @@
 #![warn(missing_docs)]
+#![forbid(unsafe_code)] 
+#![allow(clippy::needless_doctest_main)]
 //! This crate expose macros and traits to generate boilerplate code
 //! for structs inspection and edition.
 //!
-//! Basic usage would be
+//! Basic usage would be:
 //! ```
 //! use egui_inspect::{EguiInspect, EguiInspector};
 //! use eframe::egui;
@@ -16,12 +18,12 @@
 //!     #[inspect(range(min = 12.0, max = 53.0))]
 //!     unsigned32: u32,
 //!     #[inspect(hidden)]
-//! 	#[allow(dead_code)]
+//!     #[allow(dead_code)]
 //!     skipped: bool,
 //!     #[inspect(tooltip = "A boolean")]
 //!     boolean: bool,
 //!     raw_string: &'static str,
-//!     #[inspect(slider, range(min = "-43.0", max = 125.0))]
+//!     #[inspect(slider(min = "-43.0", max = 125.0))]
 //!     float64: f32,
 //!     #[inspect(name = "A proper field name")]
 //!     ugly_internal_field_name: u16,
@@ -37,11 +39,20 @@
 //! 
 //! fn main() {
 //!     let options = eframe::NativeOptions::default();
-//!     let _ = eframe::run_native("EGui Inspector Very Simple Example", options, Box::new(|_cc| Ok(Box::new(MyApp::default()))));
+//!     let _ = eframe::run_native("EGui Inspector Very Simple Example", options, 
+//!         Box::new(|_cc|
+//!             Ok(Box::new(MyApp {
+//!                 raw_string:"A raw string which is not editable, even is read_only=false",
+//!                 string: "A read only string".to_string(),
+//!                 ..Default::default()
+//!             }))
+//!         )
+//!     );
 //! }
 //! ```
 //!
 //! You can add attributes to structures field.
+//! 
 //! Currently supported attributes are defined in the struct AttributeArgs of egui_inspect_derive
 //!
 //! Here is a list of supported attributes:
@@ -49,10 +60,14 @@
 //! - `name` *(String)*: Use custom label for the given field instead of the internal field name
 //! - `hidden` *(bool)*: If true, doesn't generate code for the given field
 //! - `read_only` *(bool)*: If true, the field is not editable (and color is grayed)
-//! - `slider` *(bool)*: If true, use a slider when inspecting numbers (range must be present)
+//! - `slider` *(min=f32, max=f32)*: If present, use a slider when inspecting numbers
 //! - `range` *(min=f32, max=f32)*: Min/Max value for inspecting numbers
-//! - `multiline` *(optional u8)*: If set, display the text on multiple lines. If affected to u8, it defines the number of rows to display
+//! - `multiline` *(optional u8)*: If set, display the text on multiple lines. If affected to a u8, it defines the number of rows to display
 //! - `tooltip` *(String)*: Tooltip to display when cursor is hover
+//! - `color` *(bool)*: Display the field has a color (field type needs to implement [`From<Color32Wrapper>`]/[`Into<Color32Wrapper>`] - see [`Color32Wrapper`])
+//! - `from_string`: *(bool)*: Force edition from string conversion (needs type to implement [`FromStr`] and [`Display`])
+//!
+//!    Compatible with `multiline`.`
 //! - `date` *(DatePickerParams)*: Parameters to customize the Date Picker widget:
 //!   - ```combo_boxes```: *(optional ```bool```)*
 //!     Show combo boxes in date picker popup. (Default: true).
@@ -68,9 +83,10 @@
 //!     Change the format shown on the button. (Default: ```"%Y-%m-%d"```).
 //! 
 //!     See [`chrono::format::strftime`] for valid formats.
+//! 
 //!   - ```highlight_weekends```: (optional ```bool```).
 //!     Highlight weekend days. (Default: true)
-//!   - ```start_end_years```: (min = ```String```|```f32```, max = ```String```|```f32```):
+//!   - ```start_end_years```: (min = ```String```|```i32```, max = ```String```|```i32```):
 //! 
 //!     Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
 //! 
@@ -86,14 +102,16 @@
 //! - `datepicker`: Enables date picker UI using chrono and egui_extras.
 //! 
 //!   This adds a dependency to [egui_extras](https://docs.rs/egui_extras/latest/egui_extras/index.html) datepicker feature and to [chrono](https://docs.rs/chrono/latest/chrono/).
+//! - `all`: A shortcut to activate all features.
+//! 
 //! 
 //! ##  Default Features
 //! No features are activated by default.
 //! ```toml
 //! default = []
 //! ```
-//! 
-use std::ops::{Deref, DerefMut};
+
+use std::{fmt::Display, ops::{Deref, DerefMut}, str::FromStr};
 use egui::{Color32, Response, Ui, Widget};
 #[cfg(feature = "nalgebra_glm")]
 use nalgebra_glm::*;
@@ -115,11 +133,6 @@ pub use egui_inspect_derive::*;
 ///
 /// - `T`: The type to inspect, which must implement [`EguiInspect`].
 ///
-/// # Fields
-///
-/// - `obj`: A mutable reference to the object being inspected.
-/// - `read_only`: If `true`, disables all interactive widgets.
-///
 /// # Examples
 ///
 /// ```rust
@@ -133,7 +146,7 @@ pub use egui_inspect_derive::*;
 ///     ByNetwork{hostname:String, port:u16},
 /// }
 /// let mut config = MyConfig::default();
-/// let inspector = EguiInspector::new(&mut config, false);
+/// let inspector = EguiInspector::new(&mut config);
 /// //ui.add(inspector);
 /// ```
 ///
@@ -143,6 +156,7 @@ pub use egui_inspect_derive::*;
 /// - [`egui::Widget`]
 pub struct EguiInspector<'a, T : EguiInspect> {
 	obj: &'a mut T,
+	title: Option<String>,
 	read_only: bool,
 	id_salt: Option<egui::Id>
 }
@@ -151,27 +165,13 @@ impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 	///
 	/// - `obj`: The object to inspect.
 	pub fn new(obj: &'a mut T) -> Self {
-		Self { obj, read_only: false, id_salt: None }
+		Self { obj, title: None, read_only: false, id_salt: None }
 	}
 	/// Creates a new read only inspector widget for the given object.
 	///
 	/// - `obj`: The object to inspect.
 	pub fn new_read_only(obj: &'a mut T) -> Self {
-		Self { obj, read_only: true, id_salt: None }
-	}
-	/// Creates a new inspector widget for the given object.
-	///
-	/// - `obj`: The object to inspect.
-	/// - `id_salt`: Optional inital path.
-	pub fn new_with_salt_id(obj: &'a mut T, id_salt: impl std::hash::Hash) -> Self {
-		Self { obj, read_only: false, id_salt: Some(egui::Id::new(id_salt)) }
-	}
-	/// Creates a new read only inspector widget for the given object.
-	///
-	/// - `obj`: The object to inspect.
-	/// - `id_salt`: Optional inital path.
-	pub fn new_read_only_with_salt_id(obj: &'a mut T, id_salt: impl std::hash::Hash) -> Self {
-		Self { obj, read_only: true, id_salt: Some(egui::Id::new(id_salt)) }
+		Self { obj, title: None, read_only: true, id_salt: None }
 	}
 	/// Set read-only mode.
 	#[inline]
@@ -179,21 +179,27 @@ impl<'a, T : EguiInspect> EguiInspector<'a, T> {
 		self.read_only = true;
 		self
 	}
-	/// A source for the unique [`egui::Id`], e.g. `.id_salt("second_scroll_area")` or `.id_salt(loop_index)`.
+	/// A source for the unique [`egui::Id`], e.g. `.id_salt("inspector")` or `.id_salt(loop_index)`.
 	#[inline]
 	pub fn id_salt(mut self, id_salt: impl std::hash::Hash) -> Self {
 		self.id_salt = Some(egui::Id::new(id_salt));
 		self
 	}
-
+	/// Set a title for the widget.
+	#[inline]
+	pub fn with_title(mut self, title: &str) -> Self {
+		self.title = Some(title.to_owned());
+		self
+	}
 }
 
 impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
 	fn ui(self, ui: &mut Ui) -> Response {
 		ui.set_min_width(100.);
 		let available_width = ui.available_width();
-
-		ui.heading("Inspector");
+		if let Some(title) = &self.title {
+			ui.heading(title);
+		}
 		egui::ScrollArea::vertical().show(ui, |ui| {
 			ui.set_min_width(available_width);
 			if let Some(salt) = self.id_salt {
@@ -205,7 +211,6 @@ impl<'a, T : EguiInspect> Widget for EguiInspector<'a, T> {
 
 		ui.response()
 	}
-
 }
 
 #[cfg(feature = "nalgebra_glm")]
@@ -225,7 +230,7 @@ macro_rules! impl_only_numbers_struct_inspect {
 		#[doc = "# See Also"]
 		#[doc = "- [`egui::DragValue`]"]
 		pub fn $method(data: &mut $Type, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
-			crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_size| {
+			crate::add_custom_ui(label, tooltip, read_only, ui, |ui, _field_size| {
 				ui.horizontal(|ui| {
 					$(
 						ui.label(stringify!($field));
@@ -236,6 +241,39 @@ macro_rules! impl_only_numbers_struct_inspect {
 		}
 	}
 }
+
+#[cfg(feature = "nalgebra_glm")]
+macro_rules! impl_mat_inspect {
+	($method:ident, $Type:ident, [$( [$($field:ident),+] ),+]) => {
+		#[doc = concat!("Adds an editor for [`", stringify!($Type), "`] using `egui::DragValue` for each field.")]
+		#[doc = " "]
+		#[doc = "# Parameters"]
+		#[doc = "- `data`: Mutable reference to the `$Type` instance."]
+		#[doc = "- `label`: Label displayed above the group."]
+		#[doc = "- `tooltip`: Optional tooltip shown when hovering over the label."]
+		#[doc = "- `read_only`: If true, disables interaction."]
+		#[doc = "- `ui`: The `egui::Ui` to render into."]
+		#[doc = " "]
+		#[doc = "# See Also"]
+		#[doc = "- [`egui::DragValue`]"]
+		pub fn $method(data: &mut $Type, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+				crate::add_custom_ui(label, tooltip, read_only, ui, |ui, _field_size| {
+					ui.vertical(|ui| {
+						ui.group(|ui| {
+							$(
+								ui.horizontal(|ui| {
+									$(
+										ui.label(stringify!($field));
+										ui.add(egui::DragValue::new(&mut data.$field).speed(0.1));
+									)+
+								});
+							)+
+						});
+					});
+				});
+			}
+		}
+	}
 
 /// A trait for rendering custom UI inspectors using `egui`.
 ///
@@ -342,7 +380,7 @@ pub fn add_widget<T: egui::Widget>(label: &str, widget: T, tooltip: &str, read_o
 /// - `read_only`: If `true`, disables the field.
 /// - `ui`: The `egui::Ui` to render into.
 /// - `field_renderer`: A closure that renders the field, receiving the available field width.
-pub fn add_custom_field<F>(
+pub fn add_custom_ui<F>(
 	label: &str,
 	tooltip: &str,
 	read_only: bool,
@@ -408,7 +446,7 @@ where
 /// - [`add_number`]
 pub fn add_number_slider<Num: egui::emath::Numeric>(data: &mut Num, label: &str, tooltip: &str, read_only: bool, min:Num, max: Num, ui: &mut egui::Ui) {
 	let editor=egui::Slider::new(data, min..=max);
-	crate::add_custom_field(label, tooltip, read_only, ui, |ui, field_width| {
+	crate::add_custom_ui(label, tooltip, read_only, ui, |ui, field_width| {
 		ui.spacing_mut().slider_width = field_width-50.; 
 		ui.add_sized([field_width, 0.], editor);
 	});
@@ -421,6 +459,7 @@ pub fn add_number_slider<Num: egui::emath::Numeric>(data: &mut Num, label: &str,
 /// - `read_only`: If `true`, disables interaction.
 /// - `minmax`: Optional `(min, max)` range.
 /// - `ui`: The `egui::Ui` to render into.
+/// 
 /// See full documentation in [`add_number_slider`].
 /// 
 /// # See Also
@@ -440,7 +479,7 @@ pub fn add_number<Num: egui::emath::Numeric>(data: &mut Num, label: &str, toolti
 /// # See Also
 ///
 /// - [`egui::TextEdit::singleline`]
-pub fn add_string_singleline<'t>(data: &'t mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+pub fn add_string_singleline(data: &mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
 	crate::add_widget(label, egui::TextEdit::singleline(data), tooltip, read_only, ui)
 }
 
@@ -449,7 +488,7 @@ pub fn add_string_singleline<'t>(data: &'t mut dyn egui::TextBuffer, label: &str
 /// # See Also
 ///
 /// - [`egui::TextEdit::multiline`]
-pub fn add_string_multiline<'t>(data: &'t mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, nb_lines: u8, ui: &mut egui::Ui) -> egui::Response {
+pub fn add_string_multiline(data: &mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, nb_lines: u8, ui: &mut egui::Ui) -> egui::Response {
 	crate::add_widget(label, egui::TextEdit::multiline(data).desired_rows(nb_lines as usize), tooltip, read_only, ui)
 }
 
@@ -497,12 +536,54 @@ where
 	T : From<Color32Wrapper>,
 	T : Clone {
 	
-	crate::add_custom_field(label, tooltip, read_only, ui, |ui, _field_width| {
+	crate::add_custom_ui(label, tooltip, read_only, ui, |ui, _field_width| {
 		let mut color: Color32Wrapper = data.clone().into();
 		if ui.color_edit_button_srgba(&mut color).changed() {
 			*data = color.into();
 		}
 	})
+}
+
+/// Adds a [egui::ComboBox] to modify the index of chosed in the `choices` array.
+/// 
+/// # Panics
+/// When `current_index` is out of bounds of `choices`.
+/// 
+/// # See Also
+///
+/// - [egui::ComboBox]
+pub fn add_combobox(current_index: &mut usize, label: &str, tooltip: &str, read_only: bool, choices: &[String],ui: &mut egui::Ui) -> egui::Response {
+	//TODO: good management of id_salt
+	crate::add_custom_ui(label, tooltip, read_only, ui, |ui, field_width| {
+		egui::ComboBox::from_id_salt(label).width(field_width).show_index(ui, current_index, choices.len(), |i| {&choices[i]});
+	})
+}
+
+/// Add a single line text field which use string conversions to edit. 
+pub fn add_string_convertible<T>(value: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui)
+where T: FromStr + Display {
+	let mut buffer = value.to_string();
+
+	buffer.inspect_with_custom_id(ui.next_auto_id().with(label), label, tooltip, read_only, ui);
+
+	if let Ok(parsed) = T::from_str(&buffer) {
+		*value = parsed;
+	} else {
+		ui.label("❌ Invalid format");
+	}
+}
+/// Add a multiline line text field which use string conversions to edit. 
+pub fn add_string_convertible_multiline<T>(value: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui)
+where T: FromStr + Display {
+	let mut buffer = value.to_string();
+
+	crate::add_string_multiline(&mut buffer, label, tooltip, read_only, 4, ui);
+
+	if let Ok(parsed) = T::from_str(&buffer) {
+		*value = parsed;
+	} else {
+		ui.label("❌ Invalid format");
+	}
 }
 /// Adds a date picker for date types.
 /// 
@@ -524,6 +605,7 @@ where
 ///
 /// - [`egui_extras::DatePickerButton`]
 #[cfg(feature = "datepicker")]
+#[allow(clippy::too_many_arguments)] // TODO: find a better way to pass arguments
 pub fn add_date(data: &mut NaiveDate, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool,
 		combo_boxes: bool,
 		arrows: bool,
@@ -664,6 +746,18 @@ impl_only_numbers_struct_inspect!(add_vec2i64, I64Vec2, [x, y]);
 impl_only_numbers_struct_inspect!(add_vec3i64, I64Vec3, [x, y, z]);
 #[cfg(feature = "nalgebra_glm")]
 impl_only_numbers_struct_inspect!(add_vec4i64, I64Vec4, [x, y, z, w]);
+#[cfg(feature = "nalgebra_glm")]
+impl_only_numbers_struct_inspect!(add_quat, Quat, [i, j, k, w]);
+#[cfg(feature = "nalgebra_glm")]
+impl_only_numbers_struct_inspect!(add_dquat, DQuat, [i, j, k, w]);
 
-/// Implementations of EguiInspect for some basic types
-pub mod base_type_inspect;
+impl_mat_inspect!(add_mat2x2, Mat2x2, [[m11, m12], [m21, m22]]);
+impl_mat_inspect!(add_mat2x3, Mat2x3, [[m11, m12, m13], [m21, m22, m23]]);
+impl_mat_inspect!(add_mat2x4, Mat2x4, [[m11, m12, m13, m14], [m21, m22, m23, m24]]);
+impl_mat_inspect!(add_mat3x2, Mat3x2, [[m11, m12], [m21, m22], [m31, m32]]);
+impl_mat_inspect!(add_mat3x3, Mat3x3, [[m11, m12, m13], [m21, m22, m23], [m31, m32, m33]]);
+impl_mat_inspect!(add_mat3x4, Mat3x4, [[m11, m12, m13, m14], [m21, m22, m23, m24], [m31, m32, m33, m34]]);
+impl_mat_inspect!(add_mat4x2, Mat4x2, [[m11, m12], [m21, m22], [m31, m32], [m41, m42]]);
+impl_mat_inspect!(add_mat4x3, Mat4x3, [[m11, m12, m13], [m21, m22, m23], [m31, m32, m33], [m41, m42, m43]]);
+impl_mat_inspect!(add_mat4x4, Mat4x4, [[m11, m12, m13, m14], [m21, m22, m23, m24], [m31, m32, m33, m34], [m41, m42, m43, m44]]);
+mod base_type_inspect;

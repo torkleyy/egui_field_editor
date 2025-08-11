@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)] 
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
@@ -8,64 +9,41 @@ use darling::{FromField, FromMeta, FromVariant};
 
 mod utils;
 #[derive(Debug, FromMeta)]
-struct Date {
+#[darling(default)]
+struct DatePickerParams {
 	/// Show combo boxes in date picker popup. (Default: true)
-	#[darling(default = "default_true")]
 	combo_boxes: bool,
 	/// Show arrows in date picker popup. (Default: true)
-	#[darling(default = "default_true")]
 	arrows: bool,
 	/// Show calendar in date picker popup. (Default: true)
-	#[darling(default = "default_true")]
 	calendar: bool,
 	/// Show calendar week in date picker popup. (Default: true)
-	#[darling(default = "default_true")]
 	calendar_week: bool,
 	/// Show the calendar icon on the button. (Default: true)
-	#[darling(default = "default_true")]
 	show_icon: bool,
 	/// Change the format shown on the button. (Default: %Y-%m-%d)
 	/// See [`chrono::format::strftime`] for valid formats.
-	#[darling(default = "default_format")]
 	format: String,
 	/// Highlight weekend days. (Default: true)
-	#[darling(default = "default_true")]
 	highlight_weekends: bool,
 	/// Set the start and end years for the date picker. (Default: today's year - 100 to today's year + 10)
 	/// This will limit the years you can choose from in the dropdown to the specified range.
 	///
 	/// For example, if you want to provide the range of years from 2000 to 2035, you can use:
 	/// `start_end_years(min=2000, max=2035)`.
-	#[darling(default)]
-	start_end_years: Option<Range>,
+	start_end_years: Option<Range<i32>>,
 }
-fn default_true() -> bool {
-	true
-}
-
-fn default_format() -> String {
-	"%Y-%m-%d".to_owned()
-}
-impl Default for Date {
+impl Default for DatePickerParams {
 	fn default() -> Self {
-		Self {
-			combo_boxes: true,
-			arrows: true,
-			calendar: true,
-			calendar_week: true,
-			show_icon: true,
-			format: "%Y-%m-%d".to_owned(),
-			highlight_weekends: true,
-			start_end_years: None,
-		}
+		Self { combo_boxes: true, arrows: true, calendar: true, calendar_week: true, show_icon: true, format: "%Y-%m-%d".to_owned(), highlight_weekends: true, start_end_years: Default::default() }
 	}
 }
 #[derive(Debug, Clone, FromMeta)]
-struct Range {
+struct Range<T : Default> {
 	#[darling(default)]
-	min: f32,
+	min: T,
 	#[darling(default)]
-	max: f32,
+	max: T,
 }
 #[derive(Debug, Default)]
 struct Multiline(pub Option<u8>);
@@ -83,16 +61,16 @@ impl FromMeta for Multiline {
 					Ok(Multiline(Some(4)))
 				} else {
 					let lit: syn::LitInt = syn::parse2(list.tokens.clone())
-						.map_err(|e| darling::Error::custom(format!("Failed to parse list tokens: {}", e)))?;
+						.map_err(|e| darling::Error::custom(format!("Failed to parse list tokens: {e}")))?;
 					let value = lit.base10_parse::<u8>()
-						.map_err(|e| darling::Error::custom(format!("Invalid u8 value: {}", e)))?;
+						.map_err(|e| darling::Error::custom(format!("Invalid u8 value: {e}")))?;
 					Ok(Multiline(Some(value)))
 				}
 			}
 		}
 	}
 }
-#[derive(Debug, FromField, FromVariant)]
+#[derive(Debug, FromField, FromVariant, Default)]
 #[darling(attributes(inspect), default)]
 struct AttributeArgs {
 	/// Name of the field to be displayed on UI labels
@@ -101,34 +79,20 @@ struct AttributeArgs {
 	hidden: bool,
 	/// Display the field as readonly
 	read_only: bool,
-	/// Use slider function for numbers (need to define the range)
-	slider: bool,
+	/// Use slider function for numbers
+	slider: Option<Range<f32>>,
 	/// Display text on multiple line
 	multiline: Option<Multiline>,
 	/// Display mut vec3/vec4 with color
 	color: bool,
 	/// Min/Max values for numbers
-	range: Option<Range>,
+	range: Option<Range<f32>>,
 	/// Tooltip for the field
 	tooltip: Option<String>,
 	/// Date picker options
-	date: Option<Date>
-}
-
-impl Default for AttributeArgs {
-	fn default() -> Self {
-		Self {
-			name: None,
-			hidden: false,
-			read_only: false,
-			slider: false,
-			multiline: None,
-			color: false,
-			range: None ,
-			tooltip:None,
-			date: None
-		}
-	}
+	date: Option<DatePickerParams>,
+	/// Force edition from string conversion (needs type to implement FromString and Display)
+	from_string: bool
 }
 
 #[proc_macro_derive(EguiInspect, attributes(inspect))]
@@ -167,12 +131,11 @@ fn add_trait_bounds(mut generics: Generics) -> Generics {
 }
 
 fn get_code_for_data(data: &Data, struct_name: &Ident) -> TokenStream {
-	let ts = match *data {
-		Data::Struct(ref data) => get_code_for_struct(&data),
-		Data::Enum(ref an_enum) => get_code_for_enum(&struct_name, &an_enum),
+	match *data {
+		Data::Struct(ref data) => get_code_for_struct(data),
+		Data::Enum(ref an_enum) => get_code_for_enum(struct_name, an_enum),
 		Data::Union(_) => unimplemented!("Unions are not supported (would need unsafe code)"),
-	};
-	ts
+	}
 }
 
 fn get_code_for_struct(data: &DataStruct)  -> TokenStream {
@@ -191,25 +154,26 @@ fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 
 	for variant in &data_enum.variants {
 		let variant_name = &variant.ident;
-		let label = variant_name.to_string();
-		let attr;
-		match AttributeArgs::from_variant(variant) {
+		let mut label = variant_name.to_string();
+		let attrs= match AttributeArgs::from_variant(variant) {
 			Ok(_attr) => {
-				attr=_attr;
+				_attr
 			}
 			Err(e) => {
-				let ident = &variant.ident;
 				let msg = e.to_string();
-				return quote! {
-					#ident: {
+				return quote_spanned! {
+					e.span() => {
 						compile_error!(#msg);
 					}
 				};
 			}
-		}
-		if attr.hidden {
+		};
+		if attrs.hidden {
 			has_hidden = true;
 			continue;
+		}
+		if let Some(name) = &attrs.name {
+			label = name.clone();
 		}
 		match &variant.fields {
 			Fields::Unit => get_code_blocks_for_unit_variant(
@@ -225,14 +189,17 @@ fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 				variant_name,
 				label,
 				fields,
+				attrs.read_only,
 				&mut variant_texts,
 				&mut variant_select_conditions,
 				&mut variant_content_edit
 			),
 			Fields::Named(fields) => get_code_blocks_for_named_variant(
-				enum_name, variant_name,
+				enum_name,
+				variant_name,
 				label,
 				fields,
+				attrs.read_only,
 				&mut variant_texts,
 				&mut variant_select_conditions,
 				&mut variant_content_edit
@@ -289,20 +256,18 @@ fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 /// Generate the code to edit an named struct (the content of the ```inspect_with_custom_id``` method)
 fn get_code_for_struct_named_fields(fields: &FieldsNamed) -> TokenStream {
 	let recurse = fields.named.iter().map(|f| {
-		let attrs;
-		match AttributeArgs::from_field(f) {
-			Ok(_attr) => {
-				attrs=_attr;
+		let attrs = match AttributeArgs::from_field(f) {
+			Ok(_attrs) => {
+				_attrs
 			}
 			Err(e) => {
-				let ident = &f.ident;
 				let msg = e.to_string();
-				return quote_spanned! { ident.span() => {
+				return quote_spanned! { e.span() => {
 						compile_error!(#msg);
 					}
 				};
 			}
-		}
+		};
 		if attrs.hidden {
 			return quote!();
 		}
@@ -327,23 +292,23 @@ fn get_code_for_struct_named_fields(fields: &FieldsNamed) -> TokenStream {
 fn get_code_for_struct_unnamed_fields(fields: &FieldsUnnamed) -> TokenStream {
 	let mut recurse = Vec::new();
 	for (i,f) in fields.unnamed.iter().enumerate() {
-		let attr;
-		match AttributeArgs::from_field(f) {
-			Ok(_attr) => {
-				attr=_attr;
+		let attrs = match AttributeArgs::from_field(f) {
+			Ok(_attrs) => {
+				_attrs
 			}
 			Err(e) => {
-				let ident = &f.ident;
 				let msg = e.to_string();
-				return quote! {
-					#ident: {
+				return quote_spanned! { e.span() => {
 						compile_error!(#msg);
 					}
 				};
 			}
+		};
+		if attrs.hidden {
+			continue;
 		}
 		let tuple_index = Index::from(i);
-		recurse.push(utils::get_function_call(quote!{&mut self.#tuple_index}, f, &attr, format!("Field {i}")))
+		recurse.push(utils::get_function_call(quote!{&mut self.#tuple_index}, f, &attrs, format!("Field {i}")))
 	};
 
 	let result = quote_spanned! {
@@ -386,11 +351,13 @@ fn get_code_blocks_for_unit_variant(
 	});
 }
 /// Fill the ```variant_texts```, ```variant_select_conditions``` and ```variant_content_edit``` code blocks for a unamed fields variant
+#[allow(clippy::too_many_arguments)]
 fn get_code_blocks_for_unamed_variant(
 	enum_name: &Ident,
 	variant_name: &Ident,
 	label:String,
 	fields : &FieldsUnnamed,
+	read_only: bool,
 	variant_texts:&mut Vec<TokenStream>,
 	variant_select_conditions:&mut Vec<TokenStream>,
 	variant_content_edit:&mut Vec<TokenStream>) {
@@ -398,12 +365,11 @@ fn get_code_blocks_for_unamed_variant(
 	let default_value = if fields.unnamed.len() == 1 {
 		quote! { Default::default() }
 	} else {
-		let defaults = std::iter::repeat(quote! { Default::default() })
-			.take(fields.unnamed.len());
+		let defaults = std::iter::repeat_n(quote! { Default::default() }, fields.unnamed.len());
 		quote! {  #(#defaults),*  }
 	};
 	let bindings_ignore = (0..fields.unnamed.len())
-		.map(|_i| Ident::new(&"_", proc_macro2::Span::call_site()));
+		.map(|_i| Ident::new("_", proc_macro2::Span::call_site()));
 	variant_texts.push(quote! {
 		#enum_name::#variant_name(#(#bindings_ignore),*) => #label,
 	});
@@ -415,33 +381,31 @@ fn get_code_blocks_for_unamed_variant(
 	});
 	let mut fieldnames_list = vec![];
 	let bindings = (0..fields.unnamed.len())
-		.map(|i| Ident::new(&format!("field{}", i), proc_macro2::Span::call_site()));
+		.map(|i| Ident::new(&format!("field{i}"), proc_macro2::Span::call_site()));
 	
 	let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
-		let attr;
-		match AttributeArgs::from_field(f) {
-			Ok(_attr) => {
-				attr=_attr;
+		let mut attrs = match AttributeArgs::from_field(f) {
+			Ok(_attrs) => {
+				_attrs
 			}
 			Err(e) => {
-				let ident = &f.ident;
 				let msg = e.to_string();
-				return quote! {
-					#ident: {
+				return quote_spanned! { e.span() => {
 						compile_error!(#msg);
 					}
 				};
 			}
-		}
-		if attr.hidden {
+		};
+		if attrs.hidden {
 			return quote!();
 		}
-		
-		let fieldname = format!("field{}", i);
+		attrs.read_only = attrs.read_only || read_only;
+
+		let fieldname = format!("field{i}");
 		let fieldname = Ident::new(&fieldname, proc_macro2::Span::call_site());
 		fieldnames_list.push(quote!{#fieldname});
 
-		utils::get_function_call(quote!{#fieldname}, f, &attr, format!("Field {i}"))
+		utils::get_function_call(quote!{#fieldname}, f, &attrs, format!("Field {i}"))
 	});
 	let bindings_for_match = bindings.clone();
 	variant_content_edit.push(quote! {
@@ -453,11 +417,13 @@ fn get_code_blocks_for_unamed_variant(
 	});
 }
 /// Fill the ```variant_texts```, ```variant_select_conditions``` and ```variant_content_edit``` code blocks for a named fields variant
+#[allow(clippy::too_many_arguments)]
 fn get_code_blocks_for_named_variant(
 		enum_name: &Ident,
 		variant_name: &Ident,
 		label:String,
 		fields : &FieldsNamed,
+		read_only: bool,
 		variant_texts:&mut Vec<TokenStream>,
 		variant_select_conditions:&mut Vec<TokenStream>,
 		variant_content_edit:&mut Vec<TokenStream>) {
@@ -475,8 +441,8 @@ fn get_code_blocks_for_named_variant(
 		#enum_name::#variant_name{#(#bindings_ignore),*} => #label,
 	});
 	
-	let defaults = fields.named.iter().filter_map(|field| {
-		let name = field.ident.as_ref().unwrap(); // ignore les champs sans identifiant
+	let defaults = fields.named.iter().map(|field| {
+		let name = field.ident.as_ref().unwrap(); // safety: fields is NamedFields
 		Some(quote! { #name: Default::default() })
 	}).collect::<Vec<_>>();
 	let default_value = quote! {  #(#defaults),* };
@@ -488,23 +454,29 @@ fn get_code_blocks_for_named_variant(
 	});
 
 	for f in &fields.named {
-		let fieldname = f.ident.as_ref().unwrap();
+		let fieldname = f.ident.as_ref().unwrap(); //safety: fields is NamedFields
+		let mut hidden = false;
 		match AttributeArgs::from_field(f) {
-			Ok(attr) => {
-				if attr.hidden {
-					continue;
+			Ok(mut attrs) => {
+				if !attrs.hidden {
+					attrs.read_only = attrs.read_only || read_only;
+					inspect_calls.push(utils::get_function_call(quote!{#fieldname}, f, &attrs, "".into()));
 				}
-
-				inspect_calls.push(utils::get_function_call(quote!{#fieldname}, f, &attr, "".into()));
-			}
+				hidden = attrs.hidden;
+			},
 			Err(e) => {
 				let msg = e.to_string();
-				inspect_calls.push(quote! {
-					compile_error!(#msg);
+				inspect_calls.push(quote_spanned! { e.span() => {
+						compile_error!(#msg);
+					}
 				});
 			}
 		}
-		field_bindings.push(fieldname);
+		if !hidden {
+			field_bindings.push(quote!{#fieldname});
+		} else {
+			field_bindings.push(quote!{#fieldname: _});
+		}
 	}
 
 	variant_content_edit.push(quote! {

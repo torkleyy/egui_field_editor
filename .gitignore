@@ -1,2 +1,6 @@
 /target
 */target
+/Cargo.lock
+/egui_inspect/Cargo.lock
+/.vscode
+/egui_inspect/test.txt

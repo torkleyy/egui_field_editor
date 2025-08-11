@@ -1,21 +1,23 @@
+use std::net::Ipv4Addr;
+
 use egui::Color32;
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use egui_inspect::EguiInspector;
 
 impl Default for MyStruct {
 	fn default() -> Self {
-		Self { a_bool: Default::default(), an_int: Default::default(), an_uint: Default::default(), a_float: Default::default(), a_color: Color32::from_rgb(127, 0, 200), a_string: String::from("A single line string"), a_second_string: String::from("A\nmultiline\nline\nstring") }
+		Self { a_bool: Default::default(), an_int: Default::default(), an_uint: Default::default(), a_float: Default::default(), a_color: Color32::from_rgb(127, 0, 200), a_string: String::from("A single line string"), a_second_string: String::from("A\nmultiline\nline\nstring"), an_index: 0, an_ipv4: Ipv4Addr::UNSPECIFIED }
 	}
 }
 impl eframe::App for MyStruct {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-		let code = include_str!("simple.rs");
+		let code = include_str!("manual_implement.rs");
 		egui::SidePanel::right("right_panel").show(ctx, |ui| {
-			ui.add(EguiInspector::new(self));
+			ui.add(EguiInspector::new(self).with_title("Inpector"));
 		});
 		egui::CentralPanel::default().show(ctx, |ui| {
 			egui::ScrollArea::vertical().id_salt("code_scrolling").show(ui, |ui| {
-				code_view_ui(ui, &CodeTheme::default(), code, "rust");
+				code_view_ui(ui, &CodeTheme::default(), code, "Rust");
 			});
 		});
 	}
@@ -29,6 +31,8 @@ struct MyStruct {
 	a_color:egui::Color32,
 	a_string:String,
 	a_second_string:String,
+	an_index:usize,
+	an_ipv4:Ipv4Addr
 }
 impl egui_inspect::EguiInspect for MyStruct {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, _tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
@@ -42,6 +46,8 @@ impl egui_inspect::EguiInspect for MyStruct {
 			egui_inspect::add_color(&mut self.a_color, "Color", "", read_only, ui);
 			egui_inspect::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
 			egui_inspect::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, 4, ui);
+			egui_inspect::add_combobox(&mut self.an_index, "Combobox", "", read_only, &["Choice 1".to_string(),"Choice 2".to_string(),"Choice 3".to_string()], ui);
+			egui_inspect::add_string_convertible(&mut self.an_ipv4, "IPv4", "", false, ui);
 		};
 		if !label.is_empty() {
 			egui::CollapsingHeader::new(label).id_salt(id).show(ui, add_content);

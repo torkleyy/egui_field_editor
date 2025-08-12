@@ -1,14 +1,8 @@
 use std::net::Ipv4Addr;
-
 use egui::Color32;
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use egui_inspect::EguiInspector;
 
-impl Default for MyStruct {
-	fn default() -> Self {
-		Self { a_bool: Default::default(), an_int: Default::default(), an_uint: Default::default(), a_float: Default::default(), a_color: Color32::from_rgb(127, 0, 200), a_string: String::from("A single line string"), a_second_string: String::from("A\nmultiline\nline\nstring"), an_index: 0, an_ipv4: Ipv4Addr::UNSPECIFIED }
-	}
-}
 impl eframe::App for MyStruct {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 		let code = include_str!("manual_implement.rs");
@@ -22,16 +16,20 @@ impl eframe::App for MyStruct {
 		});
 	}
 }
-
+#[derive(better_default::Default)]
 struct MyStruct {
 	a_bool:bool,
 	an_int:i32,
 	an_uint:u64,
 	a_float:f32,
+	#[default(Color32::from_rgb(127, 0, 200))]
 	a_color:egui::Color32,
+	#[default(String::from("A single line string"))]
 	a_string:String,
+	#[default(String::from("A\nmultiline\nline\nstring"))]
 	a_second_string:String,
 	an_index:usize,
+	#[default(Ipv4Addr::UNSPECIFIED)]
 	an_ipv4:Ipv4Addr
 }
 impl egui_inspect::EguiInspect for MyStruct {
@@ -56,7 +54,6 @@ impl egui_inspect::EguiInspect for MyStruct {
 		}
 	}
 }
-
 fn main() {
 	let options = eframe::NativeOptions::default();
 	let _ = eframe::run_native("EGui Inspector Custom Implementation Example", options, Box::new(|_cc| Ok(Box::new(MyStruct::default()))));

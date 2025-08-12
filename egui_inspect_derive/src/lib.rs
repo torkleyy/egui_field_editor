@@ -92,7 +92,9 @@ struct AttributeArgs {
 	/// Date picker options
 	date: Option<DatePickerParams>,
 	/// Force edition from string conversion (needs type to implement FromString and Display)
-	from_string: bool
+	from_string: bool,
+	/// Use a custom function instead of calling [`EguiInspect::inspect_with_custom_id`]
+	custom_fn: Option<String>
 }
 
 #[proc_macro_derive(EguiInspect, attributes(inspect))]

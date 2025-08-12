@@ -28,6 +28,7 @@ datepicker = ["dep:egui_extras", "egui_extras/datepicker", "dep:chrono"]
 [dev-dependencies]
 eframe = "0.32.0"
 egui_extras = { version = "0.32", features = ["syntect"] }
+better_default = "1"
 
 [[example]]
 name = "nalgebra_glm"

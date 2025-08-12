@@ -31,6 +31,7 @@ pub enum MyEnum {
 	TupleVariant2(
 		#[inspect(name="Renamed Variant tuple field")]
 		u8,
+		#[inspect(custom_fn="inspect_num")]
 		i16
 	),
 	NamedVariant{a:f32, b:i64},
@@ -76,6 +77,9 @@ impl Default for MyApp {
 	fn default() -> Self {
 		Self { multiline: Default::default(), vector: Default::default(), array: Default::default(), u8: Default::default(), double: Default::default(), float: Default::default(), my_enum: Default::default(), char: Default::default(), ipv4: Ipv4Addr::UNSPECIFIED }
 	}
+}
+fn inspect_num(data: &mut i16, label: &str, tooltip:&str, read_only: bool, ui: &mut egui::Ui) {
+	egui_inspect::add_number(data, label, tooltip, read_only, None, ui);
 }
 impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {

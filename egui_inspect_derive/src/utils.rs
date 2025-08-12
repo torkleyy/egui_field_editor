@@ -60,7 +60,27 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 	if let Some(ttip) = attrs.tooltip.as_ref() {
 		tooltip = ttip;
 	}
-	if let Some(range) = slider {
+	if let Some(custom_fn) = &attrs.custom_fn {
+		match custom_fn.parse::<TokenStream>() {
+			Ok(custom_fn_ident) => {
+				return quote_spanned! {
+					field.span() => {
+						ui.scope(|ui| {
+							#custom_fn_ident(#field_access, &#name_str, #tooltip, read_only || #read_only, ui);
+						});
+					}
+				};
+			},
+			Err(e) => {
+				let msg=e.to_string();
+				return quote_spanned! {
+					field.span() => {
+						compile_error!(#msg);
+					}
+				};
+			}
+		}
+	} else if let Some(range) = slider {
 		let min = range.min;
 		let max = range.max;
 		let ty = proc_macro2::Ident::new(&get_path_str(&field.ty), proc_macro2::Span::call_site()); 
@@ -100,7 +120,7 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 				}
 			};
 		}
-	}else if let Some(multiline) = &attrs.multiline {
+	} else if let Some(multiline) = &attrs.multiline {
 		let nb_lines = multiline.0;
 		return quote_spanned! {
 			field.span() => {

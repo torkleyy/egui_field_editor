@@ -2,10 +2,10 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
-	parse_macro_input, parse_quote, spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, GenericParam, Generics, Index, Meta
+	parse_macro_input, parse_quote, spanned::Spanned, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, GenericParam, Generics, Index, LitStr, Meta
 };
 
-use darling::{FromField, FromMeta, FromVariant};
+use darling::{FromDeriveInput, FromField, FromMeta, FromVariant};
 
 mod utils;
 #[derive(Debug, FromMeta)]
@@ -70,6 +70,12 @@ impl FromMeta for Multiline {
 		}
 	}
 }
+
+#[derive(Debug, Default, FromDeriveInput)]
+#[darling(attributes(inspect), default)]
+struct ObjectAttributeArgs {
+	execute_btn: Vec<LitStr>
+}
 #[derive(Debug, FromField, FromVariant, Default)]
 #[darling(attributes(inspect), default)]
 struct AttributeArgs {
@@ -100,7 +106,20 @@ struct AttributeArgs {
 #[proc_macro_derive(EguiInspect, attributes(inspect))]
 pub fn derive_egui_inspect(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let input = parse_macro_input!(input as DeriveInput);
-
+	let attrs= match ObjectAttributeArgs::from_derive_input(&input) {
+			Ok(_attrs) => {
+				_attrs
+			}
+			Err(e) => {
+				let msg = e.to_string();
+				return proc_macro::TokenStream::from(quote_spanned! {
+					e.span() => {
+						compile_error!(#msg);
+					}
+				});
+			}
+		};
+	let exec_code = get_code_execute_btns(&attrs.execute_btn);
 	let name = input.ident;
 
 	let generics = add_trait_bounds(input.generics);
@@ -114,6 +133,7 @@ pub fn derive_egui_inspect(input: proc_macro::TokenStream) -> proc_macro::TokenS
 				let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 				let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 				#inspect_code
+				#exec_code
 			}
 		}
 	};
@@ -131,7 +151,26 @@ fn add_trait_bounds(mut generics: Generics) -> Generics {
 	}
 	generics
 }
-
+fn get_code_execute_btns(execs: &Vec<LitStr>) -> TokenStream {
+	let recurse = execs.iter().map(|func| {
+		let label = utils::prettify_name(func.value().as_str());
+		let func = match func.parse::<TokenStream>() {
+			Ok(f) => f,
+			Err(e) => {
+				let msg = e.to_string();
+				return quote_spanned! {e.span() => {compile_error!{#msg}}}
+			}
+		};
+		quote! {
+			egui_inspect::add_button(#label, "", read_only, ui, |ui| {
+				self.#func();
+			});
+		}
+	});
+	quote! {
+		#(#recurse)*
+	}
+}
 fn get_code_for_data(data: &Data, struct_name: &Ident) -> TokenStream {
 	match *data {
 		Data::Struct(ref data) => get_code_for_struct(data),

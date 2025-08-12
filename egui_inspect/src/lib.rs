@@ -558,7 +558,19 @@ pub fn add_combobox(current_index: &mut usize, label: &str, tooltip: &str, read_
 		egui::ComboBox::from_id_salt(label).width(field_width).show_index(ui, current_index, choices.len(), |i| {&choices[i]});
 	})
 }
-
+/// Add a [egui::Button]
+pub fn add_button<F>(label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui, on_click: F) -> egui::Response
+where F: FnOnce(&mut egui::Ui) {
+	let button = egui::Button::new(label).min_size(egui::vec2(ui.available_width(),0.));
+	let mut r=ui.add_enabled(!read_only, button);
+	if !tooltip.is_empty() {
+		r=r.on_hover_text(tooltip);
+	}
+	if r.clicked() {
+		on_click(ui);
+	}
+	ui.response()
+}
 /// Add a single line text field which use string conversions to edit. 
 pub fn add_string_convertible<T>(value: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui)
 where T: FromStr + Display {

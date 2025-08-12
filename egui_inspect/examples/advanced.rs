@@ -58,6 +58,7 @@ pub enum MyEnum {
 }
 
 #[derive(EguiInspect)]
+#[inspect(execute_btn("println_ipv4", "set_double_field_to_pi"))]
 struct MyApp {
 	#[inspect(multiline=8)]
 	pub multiline:String,
@@ -76,6 +77,14 @@ struct MyApp {
 impl Default for MyApp {
 	fn default() -> Self {
 		Self { multiline: Default::default(), vector: Default::default(), array: Default::default(), u8: Default::default(), double: Default::default(), float: Default::default(), my_enum: Default::default(), char: Default::default(), ipv4: Ipv4Addr::UNSPECIFIED }
+	}
+}
+impl MyApp {
+	fn set_double_field_to_pi(&mut self) {
+		self.double = 3.1415;
+	}
+	fn println_ipv4(&self) {
+		println!("{}", self.ipv4)
 	}
 }
 fn inspect_num(data: &mut i16, label: &str, tooltip:&str, read_only: bool, ui: &mut egui::Ui) {

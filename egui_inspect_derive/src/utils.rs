@@ -11,7 +11,7 @@ pub fn get_path_str(type_path: &Type) -> String {
 	quote::ToTokens::to_token_stream(&type_path).to_string()
 }
 
-fn prettify_name(s: &str) -> String {
+pub fn prettify_name(s: &str) -> String {
 	s.split('_')
 		.filter(|part| !part.is_empty())
 		.map(|word| {

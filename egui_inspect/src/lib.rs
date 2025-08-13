@@ -763,14 +763,23 @@ impl_only_numbers_struct_inspect!(add_vec4i64, I64Vec4, [x, y, z, w]);
 impl_only_numbers_struct_inspect!(add_quat, Quat, [i, j, k, w]);
 #[cfg(feature = "nalgebra_glm")]
 impl_only_numbers_struct_inspect!(add_dquat, DQuat, [i, j, k, w]);
-
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat2x2, Mat2x2, [[m11, m12], [m21, m22]]);
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat2x3, Mat2x3, [[m11, m12, m13], [m21, m22, m23]]);
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat2x4, Mat2x4, [[m11, m12, m13, m14], [m21, m22, m23, m24]]);
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat3x2, Mat3x2, [[m11, m12], [m21, m22], [m31, m32]]);
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat3x3, Mat3x3, [[m11, m12, m13], [m21, m22, m23], [m31, m32, m33]]);
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat3x4, Mat3x4, [[m11, m12, m13, m14], [m21, m22, m23, m24], [m31, m32, m33, m34]]);
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat4x2, Mat4x2, [[m11, m12], [m21, m22], [m31, m32], [m41, m42]]);
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat4x3, Mat4x3, [[m11, m12, m13], [m21, m22, m23], [m31, m32, m33], [m41, m42, m43]]);
+#[cfg(feature = "nalgebra_glm")]
 impl_mat_inspect!(add_mat4x4, Mat4x4, [[m11, m12, m13, m14], [m21, m22, m23, m24], [m31, m32, m33, m34], [m41, m42, m43, m44]]);
+
 mod base_type_inspect;

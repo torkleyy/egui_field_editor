@@ -60,7 +60,7 @@ pub enum MyEnum {
 }
 
 #[derive(EguiInspect)]
-#[inspect(execute_btn("println_ipv4", "set_double_field_to_pi"))]
+#[inspect(execute_btn(fn_name="println_ipv4"), execute_btn(fn_name="set_double_field_to_pi"))]
 struct MyApp {
 	#[inspect(multiline=8)]
 	pub multiline:String,

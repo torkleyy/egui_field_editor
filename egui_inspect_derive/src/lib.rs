@@ -70,11 +70,22 @@ impl FromMeta for Multiline {
 		}
 	}
 }
-
+#[derive(Debug, FromMeta)]
+struct ExecuteBtn {
+	fn_name: LitStr,
+	#[darling(default="bool_true")]
+	is_method: bool,
+	label: Option<LitStr>,
+	tooltip: Option<LitStr>,
+}
+fn bool_true() -> bool {
+	true
+}
 #[derive(Debug, Default, FromDeriveInput)]
 #[darling(attributes(inspect), default)]
 struct ObjectAttributeArgs {
-	execute_btn: Vec<LitStr>
+	#[darling(multiple)]
+	execute_btn: Vec<ExecuteBtn>
 }
 #[derive(Debug, FromField, FromVariant, Default)]
 #[darling(attributes(inspect), default)]
@@ -151,19 +162,33 @@ fn add_trait_bounds(mut generics: Generics) -> Generics {
 	}
 	generics
 }
-fn get_code_execute_btns(execs: &Vec<LitStr>) -> TokenStream {
-	let recurse = execs.iter().map(|func| {
-		let label = utils::prettify_name(func.value().as_str());
-		let func = match func.parse::<TokenStream>() {
+fn get_code_execute_btns(execs: &[ExecuteBtn]) -> TokenStream {
+	let recurse = execs.iter().map(|exec_fn| {
+		let label = if let Some(l) = &exec_fn.label {
+			l.value()
+		} else {
+			utils::prettify_name(exec_fn.fn_name.value().as_str())
+		};
+		let func = match exec_fn.fn_name.parse::<TokenStream>() {
 			Ok(f) => f,
 			Err(e) => {
 				let msg = e.to_string();
 				return quote_spanned! {e.span() => {compile_error!{#msg}}}
 			}
 		};
+		let mut tooltip_string = String::new();
+		if let Some(t) = &exec_fn.tooltip {
+			tooltip_string = t.value().clone();
+		}
+		let tooltip = tooltip_string.as_str();
+		let call_func = if exec_fn.is_method {
+			quote! { self.#func(); }
+		} else {
+			quote! { #func(); }
+		};
 		quote! {
-			egui_inspect::add_button(#label, "", read_only, ui, |ui| {
-				self.#func();
+			egui_inspect::add_button(#label, #tooltip, read_only, ui, |ui| {
+				#call_func();
 			});
 		}
 	});

@@ -5,7 +5,12 @@ use egui_inspect::{EguiInspect, EguiInspector};
 use eframe::egui;
 
 #[derive(EguiInspect, Default)]
-#[inspect(execute_btn("share_refcell", "share_mutex", "share_rwlock", "stop_thread"))]
+#[inspect(
+	execute_btn(fn_name="share_refcell"),
+	execute_btn(fn_name="share_mutex"),
+	execute_btn(fn_name="share_rwlock"),
+	execute_btn(fn_name="stop_thread")
+)]
 struct MyApp {
 	refcell_string: Rc<RefCell<String>>,
 	mutex_string: Arc<Mutex<String>>,
@@ -51,11 +56,12 @@ impl MyApp {
 			while !stop_flag.load(Ordering::SeqCst) {
 				{
 					let mut s = string_arc.write().unwrap();
-					s.push_str("🔒");
+					s.push_str(".");
 				}
 				std::thread::sleep(std::time::Duration::from_millis(1000));
 			}
 		}));
+		self.thread_running = true;
 	}
 	fn stop_thread(&mut self) {
 		if let Some(h) = self.join_handle.take() {

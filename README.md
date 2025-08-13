@@ -44,7 +44,7 @@ This derive allows customizing how fields are displayed in a user interface (UI)
 
 ## Struct Attributes
 Usage syntax:
-```#[inspect(execute_btn("my_method"))]```
+```#[inspect(execute_btn(fn_name="my_method", tooltip="My Method"), execute_btn(fn_name="my_function", is_method=false, tooltip="My Function"))]```
 
 ## Fields Attributes
 Usage syntax:

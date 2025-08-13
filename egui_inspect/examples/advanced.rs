@@ -16,6 +16,8 @@ pub struct TestData(
 	f32,
 	#[inspect(color, tooltip="not named => \"Field 3\"")]
 	Color32,
+	#[inspect(name="A Boxed string")]
+	Box<String>,
 	#[inspect(hidden)]
 	#[allow(dead_code)]
 	MyEnum

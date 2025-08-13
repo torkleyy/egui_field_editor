@@ -65,6 +65,7 @@
 //! - `multiline` *(optional u8)*: If set, display the text on multiple lines. If affected to a u8, it defines the number of rows to display
 //! - `tooltip` *(String)*: Tooltip to display when cursor is hover
 //! - `color` *(bool)*: Display the field has a color (field type needs to implement [`From<Color32Wrapper>`]/[`Into<Color32Wrapper>`] - see [`Color32Wrapper`])
+//! - `custom_fn` *(String)*: Use a custom function instead of calling [`EguiInspect::inspect_with_custom_id`]
 //! - `from_string`: *(bool)*: Force edition from string conversion (needs type to implement [`FromStr`] and [`Display`])
 //!
 //!    Compatible with `multiline`.`

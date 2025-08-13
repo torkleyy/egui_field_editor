@@ -10,7 +10,7 @@ Its goals are:
 
 This crate provide a `EguiInspect` trait which is necessary for a struct or enum to be inspected. This trait is implemented for many base
 types, and can be implemented for user created types with the macro `#[derive(EguiInspect)]`.
-If every underlying types implements `EguiInspect`, then you will be able to inspect it.
+If every underlying types implements `EguiInspect`, then you will be able to inspect it. If not, you can still be able to edit your type  by using ```hidden```, ```custom_fn``` or ```from_string``` attributes.
 
 You optionally can add the `nalgebra_glm` feature which provide implementation of `EguiInspect` for `nalgebra_glm` types and the `datapicker` feature which provide implementation of `EguiInspect` for `NaiveDate`.
 
@@ -34,6 +34,7 @@ See the following examples:
  * [simple](egui_inspect/examples/simple.rs): a simple example
  * [advanced](egui_inspect/examples/advanced.rs): features more advanced features.
  * [manual_implement](egui_inspect/examples/manual_implement.rs): see [Implement `EguiInspect` yourself](#implement-eguiinspect-yourself)
+ * [shared_data](egui_inspect/examples/shared_data.rs): features use of [Rc<RefCell<String>>], [Arc<Mutex<String>>] and [Arc<RwLock<String>>].
  * [nalgebra_glm](egui_inspect/examples/nalgebra_glm.rs): example with `nalgebra_glm` types.
  * [datepicker](egui_inspect/examples/datepicker.rs): example with `NaiveDate`.
 
@@ -41,6 +42,11 @@ See the following examples:
 ## Available Attributes
 This derive allows customizing how fields are displayed in a user interface (UI), typically using egui. The following attributes can be applied to struct fields or enum variants to control their behavior and appearance.
 
+## Struct Attributes
+Usage syntax:
+```#[inspect(execute_btn("my_method"))]```
+
+## Fields Attributes
 Usage syntax:
 ```#[inspect(name = "Label", tooltip = "Info", read_only, hidden)]```
 
@@ -68,6 +74,8 @@ List of attributes:
   Tooltip text shown when hovering over the field in the UI.
 - ```from_string```: (``bool``)
   Force edition from string conversion (needs type to implement [`FromStr`] and [`Display`])
+- ```custom_fn```: (``String``)
+  Use a custom function instead of calling [`EguiInspect::inspect_with_custom_id`]
 - ```date``` (```DatePickerParams```)
   The date picker parameters:
     - ```combo_boxes```: (optional ```bool```)

@@ -35,6 +35,19 @@ impl<T:EguiInspect> EguiInspect for Box<T> {
 		<T as EguiInspect>::inspect_with_custom_id(&mut *self, parent_id, label, tooltip, read_only, ui);
 	}
 }
+/*
+Waiting for Specialization du be stable
+impl<T: EguiInspect+Display> EguiInspect for Rc<RefCell<T>> {
+	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		if let Ok(mut inner) = self.try_borrow_mut() {
+			inner.inspect_with_custom_id(parent_id, label, tooltip, read_only, ui);
+		} else if let Ok(inner) = self.try_borrow() {
+			crate::add_string_multiline(*(inner.to_string()).into(), label, tooltip, true, 10, ui);
+		} else {
+			ui.label("🔒 Already borrowed");
+		}
+	}
+}*/
 impl<T: EguiInspect> EguiInspect for Rc<RefCell<T>> {
 	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 		if let Ok(mut inner) = self.try_borrow_mut() {

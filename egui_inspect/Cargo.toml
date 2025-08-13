@@ -19,16 +19,22 @@ nalgebra-glm = { version = "0.20", features = [], optional=true }
 egui_extras = { version = ">=0.32", features = ["syntect", "datepicker"], optional=true }
 chrono = { version = "0.4.41", features = [], optional=true }
 
+[dev-dependencies]
+eframe = ">=0.32.0"
+egui_extras = { version = ">=0.32", features = ["syntect"] }
+better_default = "1"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
+
 [features]
 default = []
 all = ["nalgebra_glm", "datepicker"]
 nalgebra_glm = ["dep:nalgebra-glm"]
 datepicker = ["dep:egui_extras", "egui_extras/datepicker", "dep:chrono"]
-
-[dev-dependencies]
-eframe = ">=0.32.0"
-egui_extras = { version = ">=0.32", features = ["syntect"] }
-better_default = "1"
 
 [[example]]
 name = "nalgebra_glm"

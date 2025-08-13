@@ -5,6 +5,10 @@ use egui::Color32;
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use egui_inspect::{EguiInspect, EguiInspector};
 use eframe::egui;
+#[cfg(target_arch = "wasm32")]
+use eframe::web_sys;
+#[cfg(target_arch = "wasm32")]
+use eframe::wasm_bindgen::JsCast;
 
 #[derive(EguiInspect, Debug, Default)]
 pub struct TestData(
@@ -107,6 +111,9 @@ impl eframe::App for MyApp {
 }
 
 fn main() {
+{
+	let app = MyApp::default();
 	let options = eframe::NativeOptions::default();
-	let _ = eframe::run_native("EGui Inspector Advanced Example", options, Box::new(|_cc| Ok(Box::new(MyApp::default()))));
-}
+	let _ = eframe::run_native("EGui Inspector Advanced Example", options, Box::new(|_cc| Ok(Box::new(app))));
+}}
+

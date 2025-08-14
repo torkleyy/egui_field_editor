@@ -8,7 +8,7 @@ Its goals are:
 - to provide as much compile-time generated code as possible, avoiding conditional branches at runtime
 - to be hyper user-friendly
 
-[Live Demo](demo/index.html)
+[Live Demo](https://ultrasuperpingu.github.io/egui_inspect/)
 
 This crate provide a `EguiInspect` trait which is necessary for a struct or enum to be inspected. This trait is implemented for many base
 types, and can be implemented for user created types with the macro `#[derive(EguiInspect)]`.

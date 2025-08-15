@@ -1,4 +1,4 @@
-# egui_inspect
+# egui_field_editor
 ![crates.io](https://img.shields.io/crates/v/egui_field_editor.svg)
 ![crates.io](https://img.shields.io/crates/l/egui_field_editor.svg)
 [![Latest version](https://img.shields.io/crates/v/egui_field_editor.svg)](https://crates.io/crates/egui_field_editor)

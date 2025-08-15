@@ -33,12 +33,12 @@ egui_inspect_derive = { git = "https://github.com/ultrasuperpingu/egui_inspect.g
 And then, instantiate a EguiInspector giving it a mutable reference to the object to inspect.
 
 See the following examples:
- * [simple](egui_inspect/examples/simple.rs): a simple example
- * [advanced](egui_inspect/examples/advanced.rs): features more advanced features.
- * [manual_implement](egui_inspect/examples/manual_implement.rs): see [Implement `EguiInspect` yourself](#implement-eguiinspect-yourself)
- * [shared_data](egui_inspect/examples/shared_data.rs): features use of [Rc<RefCell<String>>], [Arc<Mutex<String>>] and [Arc<RwLock<String>>].
- * [nalgebra_glm](egui_inspect/examples/nalgebra_glm.rs): example with `nalgebra_glm` types.
- * [datepicker](egui_inspect/examples/datepicker.rs): example with `NaiveDate`.
+ * [simple](egui_inspect/examples/shared/simple.rs): a simple example
+ * [advanced](egui_inspect/examples/shared/advanced.rs): features more advanced features.
+ * [manual_implement](egui_inspect/examples/shared/manual_implement.rs): see [Implement `EguiInspect` yourself](#implement-eguiinspect-yourself)
+ * [shared_data](egui_inspect/examples/shared/shared_data.rs): features use of [Rc<RefCell<String>>], [Arc<Mutex<String>>] and [Arc<RwLock<String>>].
+ * [nalgebra_glm](egui_inspect/examples/shared/nalgebra_glm.rs): example with `nalgebra_glm` types.
+ * [datepicker](egui_inspect/examples/shared/datepicker.rs): example with `NaiveDate`.
 
 # Documentation
 ## Available Attributes

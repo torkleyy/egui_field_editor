@@ -2,13 +2,13 @@
 ![crates.io](https://img.shields.io/crates/v/egui_inspect.svg)
 ![crates.io](https://img.shields.io/crates/l/egui_inspect.svg)
 
-This crate is intended to provide some rust helper macros to automatically generate boilerplate code to inspect structures or enums.
+This crate is is a fork of [egui_inspector](https://github.com/Meisterlama/egui_inspect). It intendes to provide some rust helper macros to automatically generate boilerplate code to inspect structures or enums.
 
 Its goals are:
 - to provide as much compile-time generated code as possible, avoiding conditional branches at runtime
 - to be hyper user-friendly
 
-[Live Demo](https://ultrasuperpingu.github.io/egui_field_editor/advanced)
+[Live Demos](https://ultrasuperpingu.github.io/egui_field_editor)
 
 This crate provide a `EguiInspect` trait which is necessary for a struct or enum to be inspected. This trait is implemented for many base
 types, and can be implemented for user created types with the macro `#[derive(EguiInspect)]`.
@@ -123,13 +123,13 @@ impl egui_field_editor::EguiInspect for MyStruct {
 		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 		let _parent_id_to_provide_to_children = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		let mut add_content=|ui:&mut egui::Ui| {
-			egui_inspect::add_bool(&mut self.a_bool, "Bool", "Boolean Tooltip", read_only, ui);
-			egui_inspect::add_number(&mut self.an_int, "Integer", "Integer Tooltip", read_only, None, ui);
-			egui_inspect::add_number(&mut self.an_uint, "Unsigned Integer", "Unsigned Integer Tooltip with min/max", read_only, Some((12, 50000)), ui);
-			egui_inspect::add_number_slider(&mut self.a_float, "Float", "Float Slider Tooltip", read_only, -12., 50., ui);
-			egui_inspect::add_color(&mut self.a_color, "Color", "", read_only, ui);
-			egui_inspect::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
-			egui_inspect::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, 4, ui);
+			egui_field_editor::add_bool(&mut self.a_bool, "Bool", "Boolean Tooltip", read_only, ui);
+			egui_field_editor::add_number(&mut self.an_int, "Integer", "Integer Tooltip", read_only, None, ui);
+			egui_field_editor::add_number(&mut self.an_uint, "Unsigned Integer", "Unsigned Integer Tooltip with min/max", read_only, Some((12, 50000)), ui);
+			egui_field_editor::add_number_slider(&mut self.a_float, "Float", "Float Slider Tooltip", read_only, -12., 50., ui);
+			egui_field_editor::add_color(&mut self.a_color, "Color", "", read_only, ui);
+			egui_field_editor::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
+			egui_field_editor::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, 4, ui);
 		};
 		if !label.is_empty() {
 			egui::CollapsingHeader::new(label).id_salt(id).show(ui, add_content);

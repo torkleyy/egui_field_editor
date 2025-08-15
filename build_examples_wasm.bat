@@ -1,5 +1,5 @@
 cargo build --target wasm32-unknown-unknown --example simple_web --release
-wasm-bindgen target/wasm32-unknown-unknown/release/examples/simple_web.wasm --out-dir docs/advanced --target web
+wasm-bindgen target/wasm32-unknown-unknown/release/examples/simple_web.wasm --out-dir docs/simple --target web
 cargo build --target wasm32-unknown-unknown --example advanced_web --release
 wasm-bindgen target/wasm32-unknown-unknown/release/examples/advanced_web.wasm --out-dir docs/advanced --target web
 cargo build --target wasm32-unknown-unknown --example manual_implement_web --release

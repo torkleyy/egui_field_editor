@@ -3,7 +3,7 @@ use egui::Color32;
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use egui_field_editor::EguiInspector;
 
-impl eframe::App for MyStruct {
+impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 		let code = include_str!("manual_implement.rs");
 		egui::SidePanel::right("right_panel").show(ctx, |ui| {
@@ -17,7 +17,7 @@ impl eframe::App for MyStruct {
 	}
 }
 #[derive(better_default::Default)]
-struct MyStruct {
+struct MyApp {
 	a_bool:bool,
 	an_int:i32,
 	an_uint:u64,
@@ -32,7 +32,7 @@ struct MyStruct {
 	#[default(Ipv4Addr::UNSPECIFIED)]
 	an_ipv4:Ipv4Addr
 }
-impl egui_field_editor::EguiInspect for MyStruct {
+impl egui_field_editor::EguiInspect for MyApp {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, _tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 		let _parent_id_to_provide_to_children = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };

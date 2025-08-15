@@ -1,6 +1,4 @@
 # egui_field_editor
-![crates.io](https://img.shields.io/crates/v/egui_field_editor.svg)
-![crates.io](https://img.shields.io/crates/l/egui_field_editor.svg)
 [![Latest version](https://img.shields.io/crates/v/egui_field_editor.svg)](https://crates.io/crates/egui_field_editor)
 [![Documentation](https://docs.rs/egui_field_editor/badge.svg)](https://docs.rs/egui_field_editor)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)

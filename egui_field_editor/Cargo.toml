@@ -1,6 +1,6 @@
 [package]
 name = "egui_field_editor"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "Easily creating UI to edit and preview data"
 readme = "../README.md"

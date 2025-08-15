@@ -1,4 +1,4 @@
-#![cfg(feature = "datepicker")]
+
 use chrono::NaiveDate;
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use egui_inspect::{EguiInspect, EguiInspector};
@@ -29,9 +29,4 @@ impl eframe::App for MyApp {
 			});
 		});
 	}
-}
-
-fn main() {
-	let options = eframe::NativeOptions::default();
-	let _ = eframe::run_native("EGui Inspector Datepicker Example", options, Box::new(|_cc| Ok(Box::new(MyApp::default()))));
 }

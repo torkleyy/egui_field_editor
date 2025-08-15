@@ -5,7 +5,7 @@
 use eframe::web_sys;
 use eframe::wasm_bindgen::JsCast;
 
-include!("advanced.rs");
+include!("shared/advanced.rs");
 
 #[wasm_bindgen::prelude::wasm_bindgen(start)]
 pub fn main() -> Result<(), wasm_bindgen::JsValue> {

@@ -1,4 +1,3 @@
-#![cfg(feature = "nalgebra_glm")]
 
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use nalgebra_glm::*;
@@ -262,9 +261,4 @@ impl eframe::App for MyApp {
 			});
 		});
 	}
-}
-
-fn main() {
-	let options = eframe::NativeOptions::default();
-	let _ = eframe::run_native("EGui Inspector NAlgebra-glm Example", options, Box::new(|_cc| Ok(Box::new(MyApp::default()))));
 }

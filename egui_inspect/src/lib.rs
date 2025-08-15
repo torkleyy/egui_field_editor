@@ -338,6 +338,7 @@ pub trait EguiInspect {
 	fn inspect_with_custom_id(&mut self, parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui);
 
 }
+
 /// Adds a labeled widget to the UI with layout and tooltip support.
 ///
 /// If `read_only` is set to `true`, the slider will be disabled and the value cannot be changed.
@@ -352,24 +353,12 @@ pub trait EguiInspect {
 /// # See Also
 ///
 /// - [`egui::Widget`]
-pub fn add_widget<T: egui::Widget>(label: &str, widget: T, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
-	let available_width = ui.available_width();
-	let label_width = available_width * 0.2;
-	let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
-	ui.horizontal(|ui| {
-		ui.add_enabled_ui(!read_only, |ui| {
-			let r=ui.add_sized([label_width,0.],egui::Label::new(label).truncate().show_tooltip_when_elided(true).halign(egui::Align::LEFT));
-			if !tooltip.is_empty() {
-				if !read_only {
-					r.on_hover_text(tooltip);
-				} else {
-					r.on_disabled_hover_text(tooltip);
-				}
-			}
+/// - [add_custom_ui]
+pub fn add_widget<T: egui::Widget>(label: &str, widget: T, tooltip: &str, read_only: bool, ui: &mut egui::Ui){
+	crate::add_custom_ui(label, tooltip, read_only, ui, |ui, field_width| {
 			ui.spacing_mut().slider_width = field_width-50.; 
 			ui.add_sized([field_width, 0.], widget);
-		});
-	}).response
+	});
 }
 /// Adds a custom field with layout and tooltip support.
 ///
@@ -387,7 +376,7 @@ pub fn add_custom_ui<F>(
 	read_only: bool,
 	ui: &mut egui::Ui,
 	field_renderer: F,
-) -> egui::Response
+)
 where
 	F: FnOnce(&mut egui::Ui, f32),
 {
@@ -415,7 +404,7 @@ where
 
 			field_renderer(ui, field_width);
 		});
-	}).response
+	});
 }
 
 /// Adds a numeric slider to the given `egui` UI.
@@ -480,7 +469,7 @@ pub fn add_number<Num: egui::emath::Numeric>(data: &mut Num, label: &str, toolti
 /// # See Also
 ///
 /// - [`egui::TextEdit::singleline`]
-pub fn add_string_singleline(data: &mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+pub fn add_string_singleline(data: &mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 	crate::add_widget(label, egui::TextEdit::singleline(data), tooltip, read_only, ui)
 }
 
@@ -489,7 +478,7 @@ pub fn add_string_singleline(data: &mut dyn egui::TextBuffer, label: &str, toolt
 /// # See Also
 ///
 /// - [`egui::TextEdit::multiline`]
-pub fn add_string_multiline(data: &mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, nb_lines: u8, ui: &mut egui::Ui) -> egui::Response {
+pub fn add_string_multiline(data: &mut dyn egui::TextBuffer, label: &str, tooltip: &str, read_only: bool, nb_lines: u8, ui: &mut egui::Ui) {
 	crate::add_widget(label, egui::TextEdit::multiline(data).desired_rows(nb_lines as usize), tooltip, read_only, ui)
 }
 
@@ -498,8 +487,8 @@ pub fn add_string_multiline(data: &mut dyn egui::TextBuffer, label: &str, toolti
 /// # See Also
 ///
 /// - [`egui::Checkbox`]
-pub fn add_bool(data: &mut bool, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
-	crate::add_widget(label, egui::Checkbox::new(data, ""), tooltip, read_only, ui)
+pub fn add_bool(data: &mut bool, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+	crate::add_widget(label, egui::Checkbox::new(data, ""), tooltip, read_only, ui);
 }
 
 /// Adds a color picker for [`egui::Color32`].
@@ -507,7 +496,7 @@ pub fn add_bool(data: &mut bool, label: &str, tooltip: &str, read_only: bool, ui
 /// # See Also
 ///
 /// - [`egui::Ui::color_edit_button_srgba`]
-pub fn add_color32(data: &mut egui::Color32, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response {
+pub fn add_color32(data: &mut egui::Color32, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 	let available_width = ui.available_width();
 	let label_width = available_width * 0.2;
 	//let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
@@ -523,7 +512,7 @@ pub fn add_color32(data: &mut egui::Color32, label: &str, tooltip: &str, read_on
 			}
 		});
 		ui.color_edit_button_srgba(data);
-	}).response
+	});
 }
 
 /// Adds a color picker for custom color types convertible to/from [`Color32Wrapper`].
@@ -531,7 +520,7 @@ pub fn add_color32(data: &mut egui::Color32, label: &str, tooltip: &str, read_on
 /// # See Also
 ///
 /// - [`egui::Ui::color_edit_button_srgba`]
-pub fn add_color<T>(data: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) -> egui::Response
+pub fn add_color<T>(data: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui)
 where
 	Color32Wrapper: From<T>,
 	T : From<Color32Wrapper>,
@@ -542,7 +531,7 @@ where
 		if ui.color_edit_button_srgba(&mut color).changed() {
 			*data = color.into();
 		}
-	})
+	});
 }
 
 /// Adds a [egui::ComboBox] to modify the index of chosed in the `choices` array.
@@ -553,24 +542,27 @@ where
 /// # See Also
 ///
 /// - [egui::ComboBox]
-pub fn add_combobox(current_index: &mut usize, label: &str, tooltip: &str, read_only: bool, choices: &[String],ui: &mut egui::Ui) -> egui::Response {
+pub fn add_combobox(current_index: &mut usize, label: &str, tooltip: &str, read_only: bool, choices: &[String],ui: &mut egui::Ui) {
 	//TODO: good management of id_salt
 	crate::add_custom_ui(label, tooltip, read_only, ui, |ui, field_width| {
 		egui::ComboBox::from_id_salt(label).width(field_width).show_index(ui, current_index, choices.len(), |i| {&choices[i]});
-	})
+	});
 }
 /// Add a [egui::Button]
-pub fn add_button<F>(label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui, on_click: F) -> egui::Response
+pub fn add_button<F>(label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui, on_click: F)
 where F: FnOnce(&mut egui::Ui) {
 	let button = egui::Button::new(label).min_size(egui::vec2(ui.available_width(),0.));
-	let mut r=ui.add_enabled(!read_only, button);
-	if !tooltip.is_empty() {
-		r=r.on_hover_text(tooltip);
-	}
-	if r.clicked() {
-		on_click(ui);
-	}
-	ui.response()
+	ui.add_enabled_ui(!read_only, |ui| {
+		ui.horizontal_top(|ui| {
+			let mut r= button.ui(ui);
+			if !tooltip.is_empty() {
+				r=r.on_hover_text(tooltip);
+			}
+			if r.clicked() {
+				on_click(ui);
+			}
+		});
+	});
 }
 /// Add a single line text field which use string conversions to edit. 
 pub fn add_string_convertible<T>(value: &mut T, label: &str, tooltip: &str, read_only: bool, ui: &mut Ui)

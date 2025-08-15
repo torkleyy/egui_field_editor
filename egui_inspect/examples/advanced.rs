@@ -5,10 +5,6 @@ use egui::Color32;
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use egui_inspect::{EguiInspect, EguiInspector};
 use eframe::egui;
-#[cfg(target_arch = "wasm32")]
-use eframe::web_sys;
-#[cfg(target_arch = "wasm32")]
-use eframe::wasm_bindgen::JsCast;
 
 #[derive(EguiInspect, Debug, Default)]
 pub struct TestData(
@@ -64,7 +60,7 @@ pub enum MyEnum {
 }
 
 #[derive(EguiInspect)]
-#[inspect(execute_btn(fn_name="println_ipv4"), execute_btn(fn_name="set_double_field_to_pi"))]
+#[inspect(execute_btn(fn_name="println_hello", is_method=false), execute_btn(fn_name="set_double_field_to_pi", tooltip="3.141592653"))]
 struct MyApp {
 	#[inspect(multiline=8)]
 	pub multiline:String,
@@ -89,9 +85,9 @@ impl MyApp {
 	fn set_double_field_to_pi(&mut self) {
 		self.double = 3.1415;
 	}
-	fn println_ipv4(&self) {
-		println!("{}", self.ipv4)
-	}
+}
+fn println_hello() {
+	println!("Hello");
 }
 fn inspect_num(data: &mut i16, label: &str, tooltip:&str, read_only: bool, ui: &mut egui::Ui) {
 	egui_inspect::add_number(data, label, tooltip, read_only, None, ui);
@@ -109,11 +105,3 @@ impl eframe::App for MyApp {
 		});
 	}
 }
-
-fn main() {
-{
-	let app = MyApp::default();
-	let options = eframe::NativeOptions::default();
-	let _ = eframe::run_native("EGui Inspector Advanced Example", options, Box::new(|_cc| Ok(Box::new(app))));
-}}
-

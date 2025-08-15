@@ -4,10 +4,11 @@ version = "0.2.0"
 edition = "2024"
 description = "Easily creating UI to edit and preview data"
 readme = "../README.md"
-repository = "https://github.com/Meisterlama/egui_inspect"
-homepage = "https://github.com/Meisterlama/egui_inspect"
+repository = "https://github.com/ultrasuperpingu/egui_inspect"
+homepage = "https://github.com/ultrasuperpingu/egui_inspect"
 license = "MIT"
-categories = [ "gui", "game-development"]
+keywords = ["egui", "inspection", "gui"]
+categories = ["gui", "development-tools", "game-development"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

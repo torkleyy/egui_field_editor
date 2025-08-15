@@ -2,6 +2,15 @@
 name = "egui_inspect_derive"
 version = "0.2.0"
 edition = "2024"
+authors = ["ultrasuperpingu"]
+description = "Proc-macro derive of egui_inspect::EguiInspect"
+license = "MIT"
+repository = "https://github.com/ultrasuperpingu/egui_inspect"
+readme = "../README.md"
+keywords = ["egui", "derive", "macro", "gui"]
+categories = ["gui", "development-tools"]
+documentation = "https://docs.rs/egui_inspect_derive"
+
 
 [lib]
 proc-macro = true

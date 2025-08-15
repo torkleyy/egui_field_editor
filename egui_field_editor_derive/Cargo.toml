@@ -2,7 +2,6 @@
 name = "egui_field_editor_derive"
 version = "0.2.0"
 edition = "2024"
-authors = ["ultrasuperpingu"]
 description = "Proc-macro derive of egui_field_editor::EguiInspect"
 license = "MIT"
 repository = "https://github.com/ultrasuperpingu/egui_field_editor"

@@ -10,7 +10,8 @@ license = "MIT"
 keywords = ["egui", "inspection", "gui"]
 categories = ["gui", "development-tools", "game-development"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[package.metadata.docs.rs]
+all-features = true
 
 [dependencies]
 egui = ">=0.32.0"

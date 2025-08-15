@@ -6,7 +6,7 @@
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ultrasuperpingu/egui_field_editor/blob/main/LICENSE.md)
 
-This crate is is a fork of [egui_inspector](https://github.com/Meisterlama/egui_inspect). It intendes to provide some rust helper macros to automatically generate boilerplate code to inspect structures or enums.
+This crate is is a fork of [egui_inspector](https://github.com/Meisterlama/egui_inspect). It intends to provide some rust helper macros to automatically generate boilerplate code to inspect structures or enums.
 
 Its goals are:
 - to provide as much compile-time generated code as possible, avoiding conditional branches at runtime
@@ -30,8 +30,8 @@ This is a side project, so the API might not be stable yet.
 You can add a reference to this crate in your Cargo.toml:
 ```toml
 [dependencies]
-egui_field_editor = { git = "https://github.com/ultrasuperpingu/egui_field_editor.git", features=["all"] }
-egui_field_editor = { git = "https://github.com/ultrasuperpingu/egui_field_editor.git" }
+egui_field_editor = { version = "0.2", features=["all"] }
+egui_field_editor = "0.2"
 ```
 
 And then, instantiate a EguiInspector giving it a mutable reference to the object to inspect.

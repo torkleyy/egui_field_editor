@@ -1,6 +1,10 @@
 # egui_inspect
-![crates.io](https://img.shields.io/crates/v/egui_inspect.svg)
-![crates.io](https://img.shields.io/crates/l/egui_inspect.svg)
+![crates.io](https://img.shields.io/crates/v/egui_field_editor.svg)
+![crates.io](https://img.shields.io/crates/l/egui_field_editor.svg)
+[![Latest version](https://img.shields.io/crates/v/egui_field_editor.svg)](https://crates.io/crates/egui_field_editor)
+[![Documentation](https://docs.rs/egui_field_editor/badge.svg)](https://docs.rs/egui_field_editor)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ultrasuperpingu/egui_field_editor/blob/main/LICENSE.md)
 
 This crate is is a fork of [egui_inspector](https://github.com/Meisterlama/egui_inspect). It intendes to provide some rust helper macros to automatically generate boilerplate code to inspect structures or enums.
 

@@ -1,11 +1,11 @@
 [package]
-name = "egui_inspect"
+name = "egui_field_editor"
 version = "0.2.0"
 edition = "2024"
 description = "Easily creating UI to edit and preview data"
 readme = "../README.md"
-repository = "https://github.com/ultrasuperpingu/egui_inspect"
-homepage = "https://github.com/ultrasuperpingu/egui_inspect"
+repository = "https://github.com/ultrasuperpingu/egui_field_editor"
+homepage = "https://github.com/ultrasuperpingu/egui_field_editor"
 license = "MIT"
 keywords = ["egui", "inspection", "gui"]
 categories = ["gui", "development-tools", "game-development"]
@@ -15,7 +15,7 @@ categories = ["gui", "development-tools", "game-development"]
 [dependencies]
 egui = ">=0.32.0"
 egui_dnd = ">=0.13.0"
-egui_inspect_derive = { path = "../egui_inspect_derive" }
+egui_field_editor_derive = { path = "../egui_field_editor_derive" }
 nalgebra-glm = { version = "0.20", features = [], optional=true }
 egui_extras = { version = ">=0.32", features = ["syntect", "datepicker"], optional=true }
 chrono = { version = "0.4.41", features = [], optional=true }

@@ -6,7 +6,7 @@
 //!
 //! Basic usage would be:
 //! ```
-//! use egui_inspect::{EguiInspect, EguiInspector};
+//! use egui_field_editor::{EguiInspect, EguiInspector};
 //! use eframe::egui;
 //! 
 //! #[derive(EguiInspect, Default)]
@@ -53,7 +53,7 @@
 //!
 //! You can add attributes to structures field.
 //! 
-//! Currently supported attributes are defined in the struct AttributeArgs of egui_inspect_derive
+//! Currently supported attributes are defined in the struct AttributeArgs of egui_field_editor_derive
 //!
 //! Here is a list of supported attributes:
 //!
@@ -122,7 +122,7 @@ use std::{hash::{Hash, Hasher}, ops::RangeInclusive};
 use chrono::NaiveDate;
 
 /// See also [EguiInspect]
-pub use egui_inspect_derive::*;
+pub use egui_field_editor_derive::*;
 
 /// A wrapper widget that renders an object implementing [`EguiInspect`] inside an `egui` UI.
 ///
@@ -137,7 +137,7 @@ pub use egui_inspect_derive::*;
 /// # Examples
 ///
 /// ```rust
-/// use egui_inspect::{EguiInspector, EguiInspect};
+/// use egui_field_editor::{EguiInspector, EguiInspect};
 /// #[derive(EguiInspect, Default, PartialEq)]
 /// enum MyConfig {
 ///     #[default]
@@ -299,18 +299,18 @@ macro_rules! impl_mat_inspect {
 ///     a_string:String,
 ///     a_second_string:String,
 /// }
-/// impl egui_inspect::EguiInspect for MyStruct {
+/// impl egui_field_editor::EguiInspect for MyStruct {
 ///     fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 ///         let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 ///         let _parent_id_to_provide_to_children = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 ///         let mut add_content=|ui:&mut egui::Ui| {
-///             egui_inspect::add_bool(&mut self.a_bool, "Bool", "Boolean Tooltip", read_only, ui);
-///             egui_inspect::add_number(&mut self.an_int, "Integer", "Integer Tooltip", read_only, None, ui);
-///             egui_inspect::add_number(&mut self.an_uint, "Unsigned Integer", "Unsigned Integer Tooltip with min/max", read_only, Some((12, 50000)), ui);
-///             egui_inspect::add_number_slider(&mut self.a_float, "Float", "Float Slider Tooltip", read_only, -12., 50., ui);
-///             egui_inspect::add_color(&mut self.a_color, "Color", "", read_only, ui);
-///             egui_inspect::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
-///             egui_inspect::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, 4, ui);
+///             egui_field_editor::add_bool(&mut self.a_bool, "Bool", "Boolean Tooltip", read_only, ui);
+///             egui_field_editor::add_number(&mut self.an_int, "Integer", "Integer Tooltip", read_only, None, ui);
+///             egui_field_editor::add_number(&mut self.an_uint, "Unsigned Integer", "Unsigned Integer Tooltip with min/max", read_only, Some((12, 50000)), ui);
+///             egui_field_editor::add_number_slider(&mut self.a_float, "Float", "Float Slider Tooltip", read_only, -12., 50., ui);
+///             egui_field_editor::add_color(&mut self.a_color, "Color", "", read_only, ui);
+///             egui_field_editor::add_string_singleline(&mut self.a_string, "String", "", read_only, ui);
+///             egui_field_editor::add_string_multiline(&mut self.a_second_string, "Multiline String", "", read_only, 4, ui);
 ///         };
 ///         if !label.is_empty() {
 ///             egui::CollapsingHeader::new(label).id_salt(id).show(ui, add_content);

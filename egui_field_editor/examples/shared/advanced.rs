@@ -3,7 +3,7 @@ use std::net::Ipv4Addr;
 
 use egui::Color32;
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
-use egui_inspect::{EguiInspect, EguiInspector};
+use egui_field_editor::{EguiInspect, EguiInspector};
 use eframe::egui;
 
 #[derive(EguiInspect, Debug, Default)]
@@ -90,7 +90,7 @@ fn println_hello() {
 	println!("Hello");
 }
 fn inspect_num(data: &mut i16, label: &str, tooltip:&str, read_only: bool, ui: &mut egui::Ui) {
-	egui_inspect::add_number(data, label, tooltip, read_only, None, ui);
+	egui_field_editor::add_number(data, label, tooltip, read_only, None, ui);
 }
 impl eframe::App for MyApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {

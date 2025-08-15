@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
 members = [
-    "egui_inspect",
-    "egui_inspect_derive"
+    "egui_field_editor",
+    "egui_field_editor_derive"
 ]

@@ -1,4 +1,4 @@
-use egui_inspect::{EguiInspect, EguiInspector};
+use egui_field_editor::{EguiInspect, EguiInspector};
 use eframe::egui;
 
 #[derive(EguiInspect, Default)]

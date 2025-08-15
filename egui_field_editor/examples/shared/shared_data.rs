@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc, sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex, RwLock}};
 
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
-use egui_inspect::{EguiInspect, EguiInspector};
+use egui_field_editor::{EguiInspect, EguiInspector};
 use eframe::egui;
 
 #[derive(EguiInspect, Default)]

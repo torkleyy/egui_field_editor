@@ -8,7 +8,7 @@ Its goals are:
 - to provide as much compile-time generated code as possible, avoiding conditional branches at runtime
 - to be hyper user-friendly
 
-[Live Demo](https://ultrasuperpingu.github.io/egui_inspect/advanced)
+[Live Demo](https://ultrasuperpingu.github.io/egui_field_editor/advanced)
 
 This crate provide a `EguiInspect` trait which is necessary for a struct or enum to be inspected. This trait is implemented for many base
 types, and can be implemented for user created types with the macro `#[derive(EguiInspect)]`.
@@ -26,19 +26,19 @@ This is a side project, so the API might not be stable yet.
 You can add a reference to this crate in your Cargo.toml:
 ```toml
 [dependencies]
-egui_inspect = { git = "https://github.com/ultrasuperpingu/egui_inspect.git", features=["all"] }
-egui_inspect_derive = { git = "https://github.com/ultrasuperpingu/egui_inspect.git" }
+egui_field_editor = { git = "https://github.com/ultrasuperpingu/egui_field_editor.git", features=["all"] }
+egui_field_editor = { git = "https://github.com/ultrasuperpingu/egui_field_editor.git" }
 ```
 
 And then, instantiate a EguiInspector giving it a mutable reference to the object to inspect.
 
 See the following examples:
- * [simple](egui_inspect/examples/shared/simple.rs): a simple example
- * [advanced](egui_inspect/examples/shared/advanced.rs): features more advanced features.
- * [manual_implement](egui_inspect/examples/shared/manual_implement.rs): see [Implement `EguiInspect` yourself](#implement-eguiinspect-yourself)
- * [shared_data](egui_inspect/examples/shared/shared_data.rs): features use of [Rc<RefCell<String>>], [Arc<Mutex<String>>] and [Arc<RwLock<String>>].
- * [nalgebra_glm](egui_inspect/examples/shared/nalgebra_glm.rs): example with `nalgebra_glm` types.
- * [datepicker](egui_inspect/examples/shared/datepicker.rs): example with `NaiveDate`.
+ * [simple](egui_field_editor/examples/shared/simple.rs): a simple example
+ * [advanced](egui_field_editor/examples/shared/advanced.rs): features more advanced features.
+ * [manual_implement](egui_field_editor/examples/shared/manual_implement.rs): see [Implement `EguiInspect` yourself](#implement-eguiinspect-yourself)
+ * [shared_data](egui_field_editor/examples/shared/shared_data.rs): features use of [Rc<RefCell<String>>], [Arc<Mutex<String>>] and [Arc<RwLock<String>>].
+ * [nalgebra_glm](egui_field_editor/examples/shared/nalgebra_glm.rs): example with `nalgebra_glm` types.
+ * [datepicker](egui_field_editor/examples/shared/datepicker.rs): example with `NaiveDate`.
 
 # Documentation
 ## Available Attributes
@@ -118,7 +118,7 @@ struct MyStruct {
 	a_string:String,
 	a_second_string:String,
 }
-impl egui_inspect::EguiInspect for MyStruct {
+impl egui_field_editor::EguiInspect for MyStruct {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, _tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 		let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 		let _parent_id_to_provide_to_children = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };

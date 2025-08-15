@@ -115,7 +115,7 @@ struct AttributeArgs {
 }
 
 #[proc_macro_derive(EguiInspect, attributes(inspect))]
-pub fn derive_egui_inspect(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn derive_egui_field_editor(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let input = parse_macro_input!(input as DeriveInput);
 	let attrs= match ObjectAttributeArgs::from_derive_input(&input) {
 			Ok(_attrs) => {
@@ -139,7 +139,7 @@ pub fn derive_egui_inspect(input: proc_macro::TokenStream) -> proc_macro::TokenS
 	let inspect_code = get_code_for_data(&input.data, &name);
 
 	let expanded = quote! {
-		impl #impl_generics egui_inspect::EguiInspect for #name #ty_generics #where_clause {
+		impl #impl_generics egui_field_editor::EguiInspect for #name #ty_generics #where_clause {
 			fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
 				let id = if _parent_id == egui::Id::NULL { ui.next_auto_id() } else { _parent_id.with(label) };
 				let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
@@ -157,7 +157,7 @@ fn add_trait_bounds(mut generics: Generics) -> Generics {
 		if let GenericParam::Type(ref mut type_param) = *param {
 			type_param
 				.bounds
-				.push(parse_quote!(egui_inspect::EguiInspect));
+				.push(parse_quote!(egui_field_editor::EguiInspect));
 		}
 	}
 	generics
@@ -187,7 +187,7 @@ fn get_code_execute_btns(execs: &[ExecuteBtn]) -> TokenStream {
 			quote! { #func(); }
 		};
 		quote! {
-			egui_inspect::add_button(#label, #tooltip, read_only, ui, |ui| {
+			egui_field_editor::add_button(#label, #tooltip, read_only, ui, |ui| {
 				#call_func();
 			});
 		}

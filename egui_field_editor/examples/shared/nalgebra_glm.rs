@@ -3,7 +3,7 @@ use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use nalgebra_glm::*;
 
 
-use egui_inspect::{EguiInspect, EguiInspector};
+use egui_field_editor::{EguiInspect, EguiInspector};
 
 use eframe::egui;
 

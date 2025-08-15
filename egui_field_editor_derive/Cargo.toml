@@ -1,15 +1,14 @@
 [package]
-name = "egui_inspect_derive"
+name = "egui_field_editor_derive"
 version = "0.2.0"
 edition = "2024"
 authors = ["ultrasuperpingu"]
-description = "Proc-macro derive of egui_inspect::EguiInspect"
+description = "Proc-macro derive of egui_field_editor::EguiInspect"
 license = "MIT"
-repository = "https://github.com/ultrasuperpingu/egui_inspect"
+repository = "https://github.com/ultrasuperpingu/egui_field_editor"
 readme = "../README.md"
 keywords = ["egui", "derive", "macro", "gui"]
 categories = ["gui", "development-tools"]
-documentation = "https://docs.rs/egui_inspect_derive"
 
 
 [lib]

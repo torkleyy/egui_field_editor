@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EGui Inspector</title>
+    <style>
+        html, body, canvas {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="the_canvas_id"></canvas>
+    <script type="module">
+import init, * as wasm from './advanced_web.js';
+
+init().then(() => {
+    console.log("WASM initialized");
+    wasm.println_ipv4(); // ou toute autre fonction exportée
+});
+    wasm.default();
+</script>
+</body>
+</html>

@@ -17,9 +17,9 @@ all-features = true
 egui = ">=0.32.0"
 egui_dnd = ">=0.13.0"
 egui_field_editor_derive = { path = "../egui_field_editor_derive" }
-nalgebra-glm = { version = "0.20", features = [], optional=true }
+nalgebra-glm = { version = ">=0.20", features = [], optional=true }
 egui_extras = { version = ">=0.32", features = ["syntect", "datepicker"], optional=true }
-chrono = { version = "0.4.41", features = [], optional=true }
+chrono = { version = ">=0.4.41", features = [], optional=true }
 
 [dev-dependencies]
 eframe = ">=0.32.0"

@@ -15,7 +15,7 @@ pub fn main() -> Result<(), wasm_bindgen::JsValue> {
 
 	let canvas = web_sys::window()
 		.and_then(|win| win.document())
-		.and_then(|doc| doc.get_element_by_id("the_canvas_id"))
+		.and_then(|doc| doc.get_element_by_id("canvas_id"))
 		.and_then(|elem| elem.dyn_into::<web_sys::HtmlCanvasElement>().ok())
 		.expect("Failed to get canvas element");
 

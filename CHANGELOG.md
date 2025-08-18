@@ -1,4 +1,4 @@
-v0.2.0
+v0.2.1
  - Docs update
 v0.2.0
  - first version of egui_field_editor

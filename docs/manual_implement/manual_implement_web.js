@@ -203,7 +203,7 @@ export function main() {
 }
 
 function __wbg_adapter_30(arg0, arg1, arg2) {
-    wasm.closure1014_externref_shim(arg0, arg1, arg2);
+    wasm.closure1015_externref_shim(arg0, arg1, arg2);
 }
 
 function takeFromExternrefTable0(idx) {
@@ -219,7 +219,7 @@ function __wbg_adapter_35(arg0, arg1) {
 }
 
 function __wbg_adapter_38(arg0, arg1, arg2) {
-    wasm.closure1067_externref_shim(arg0, arg1, arg2);
+    wasm.closure1068_externref_shim(arg0, arg1, arg2);
 }
 
 const __wbindgen_enum_ResizeObserverBoxOptions = ["border-box", "content-box", "device-pixel-content-box"];
@@ -1448,20 +1448,20 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper2452 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1015, __wbg_adapter_30);
+    imports.wbg.__wbindgen_closure_wrapper2465 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1016, __wbg_adapter_30);
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper2454 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1015, __wbg_adapter_30);
+    imports.wbg.__wbindgen_closure_wrapper2467 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1016, __wbg_adapter_30);
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper2456 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1015, __wbg_adapter_35);
+    imports.wbg.__wbindgen_closure_wrapper2469 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1016, __wbg_adapter_35);
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper2600 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1068, __wbg_adapter_38);
+    imports.wbg.__wbindgen_closure_wrapper2613 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1069, __wbg_adapter_38);
         return ret;
     };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {

@@ -657,8 +657,11 @@ pub fn add_path(data: &mut std::path::PathBuf, label: &str, tooltip: &str, read_
 			#[cfg(all(feature="filepicker", not(target_arch = "wasm32")))]
 			if !read_only && ui.button("...").clicked() {
 				let mut fd = rfd::FileDialog::new();
-				for f in _filters {
+				for f in &_filters {
 					fd=fd.add_filter(f.to_string(), &f.split(',').collect::<Vec<_>>());
+				}
+				if !_filters.is_empty() {
+					fd=fd.add_filter("All Files".to_string(), &["*.*"]);
 				}
 				let filepath = fd.pick_file();
 				if let Some(filepath) = filepath {

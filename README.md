@@ -80,6 +80,8 @@ List of attributes:
   Force edition from string conversion (needs type to implement [`FromStr`] and [`Display`])
 - ```custom_fn```: (``String``)
   Use a custom function instead of calling [`EguiInspect::inspect_with_custom_id`]
+- ```file``` (```FilePickerParams```)
+    - ```filter```: (```String```) : a list of file filters accepted by the file dialog
 - ```date``` (```DatePickerParams```)
   The date picker parameters:
     - ```combo_boxes```: (optional ```bool```)

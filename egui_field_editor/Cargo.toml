@@ -19,7 +19,8 @@ egui_dnd = ">=0.13.0"
 egui_field_editor_derive = { path = "../egui_field_editor_derive" }
 nalgebra-glm = { version = ">=0.20", features = [], optional=true }
 egui_extras = { version = ">=0.32", features = ["syntect", "datepicker"], optional=true }
-chrono = { version = ">=0.4.41", features = [], optional=true }
+chrono = { version = ">=0.4", features = [], optional=true }
+rfd = { version = ">=0.13", features = [], optional=true }
 
 [dev-dependencies]
 eframe = ">=0.32.0"
@@ -34,9 +35,10 @@ wasm-bindgen-futures = "0.4.50"
 
 [features]
 default = []
-all = ["nalgebra_glm", "datepicker"]
+all = ["nalgebra_glm", "datepicker", "filepicker"]
 nalgebra_glm = ["dep:nalgebra-glm"]
 datepicker = ["dep:egui_extras", "egui_extras/datepicker", "dep:chrono"]
+filepicker = ["dep:rfd"]
 
 [[example]]
 name = "nalgebra_glm"
@@ -47,3 +49,8 @@ required-features = ["nalgebra_glm"]
 name = "datepicker"
 path = "examples/datepicker.rs"
 required-features = ["datepicker"]
+
+[[example]]
+name = "filepicker"
+path = "examples/filepicker.rs"
+required-features = ["filepicker"]

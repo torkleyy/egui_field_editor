@@ -644,6 +644,31 @@ pub fn add_date(data: &mut NaiveDate, parent_id: egui::Id, label: &str, tooltip:
 	}
 }
 
+/// Add a path (a singleline string editor) with a button next to it to open a file picker if the feature "filepicker" is active
+pub fn add_path(data: &mut std::path::PathBuf, label: &str, tooltip: &str, read_only: bool, _filters: Vec<&str>, ui: &mut egui::Ui) {
+	add_custom_ui(label, tooltip, read_only, ui, |ui, field_width| {
+		if let Some(path) = data.to_str() {
+			let mut path = path.to_string();
+			#[cfg(all(feature="filepicker", not(target_arch = "wasm32")))]
+			let field_width = if !read_only { field_width-35. } else { field_width };
+			
+			ui.add_enabled(!read_only, egui::TextEdit::singleline(&mut path).desired_width(field_width));
+			*data=path.into();
+			#[cfg(all(feature="filepicker", not(target_arch = "wasm32")))]
+			if !read_only && ui.button("...").clicked() {
+				let mut fd = rfd::FileDialog::new();
+				for f in _filters {
+					fd=fd.add_filter(f.to_string(), &f.split(',').collect::<Vec<_>>());
+				}
+				let filepath = fd.pick_file();
+				if let Some(filepath) = filepath {
+					*data=filepath;
+				}
+			}
+		}
+	});
+}
+
 /// An utility wrapper around [`egui::Color32`].
 ///
 /// This wrapper is useful when you want to:

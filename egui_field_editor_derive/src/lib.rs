@@ -8,6 +8,12 @@ use syn::{
 use darling::{FromDeriveInput, FromField, FromMeta, FromVariant};
 
 mod utils;
+
+#[derive(Debug, FromMeta)]
+struct FilePathParams {
+	#[darling(multiple, default)]
+	pub filter: Vec<String>
+}
 #[derive(Debug, FromMeta)]
 #[darling(default)]
 struct DatePickerParams {
@@ -108,6 +114,8 @@ struct AttributeArgs {
 	tooltip: Option<String>,
 	/// Date picker options
 	date: Option<DatePickerParams>,
+	/// Date picker options
+	file: Option<FilePathParams>,
 	/// Force edition from string conversion (needs type to implement FromString and Display)
 	from_string: bool,
 	/// Use a custom function instead of calling [`EguiInspect::inspect_with_custom_id`]

@@ -4,3 +4,5 @@
 /egui_inspect/Cargo.lock
 /.vscode
 /egui_inspect/test.txt
+/docs/filepicker
+/docs/shared_data

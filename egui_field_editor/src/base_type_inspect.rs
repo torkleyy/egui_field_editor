@@ -255,6 +255,12 @@ impl crate::EguiInspect for Color32 {
 	}
 }
 
+impl crate::EguiInspect for std::path::PathBuf {
+	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {
+		crate::add_path(self, label, tooltip, read_only, vec![], ui);
+	}
+}
+
 impl<T : EguiInspect> crate::EguiInspect for Option<T>
 	where T : Default+PartialEq {
 	fn inspect_with_custom_id(&mut self, _parent_id: egui::Id, label: &str, tooltip: &str, read_only: bool, ui: &mut egui::Ui) {

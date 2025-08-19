@@ -1,3 +1,5 @@
+v0.2.2
+ - Added file picker
 v0.2.1
  - Docs update
 v0.2.0

@@ -10,7 +10,7 @@ use eframe::egui;
 struct MyApp{
 	pub naive_date:NaiveDate,
 	#[inspect(date(calendar_week=false, highlight_weekends=false, start_end_years(min=2015, max=2028), combo_boxes=false))]
-	pub naive_date2:NaiveDate,
+	pub naive_date2:NaiveDate
 }
 impl Default for MyApp {
 	fn default() -> Self {

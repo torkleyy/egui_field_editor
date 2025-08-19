@@ -1,5 +1,5 @@
 use proc_macro2::TokenStream;
-use quote::quote_spanned;
+use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 use syn::Type;
 use syn::{Field};
@@ -133,6 +133,17 @@ pub(crate) fn get_function_call(field_access :TokenStream, field: &Field, attrs:
 		return quote_spanned! {field.span() => {
 				ui.scope(|ui| {
 					egui_field_editor::add_color(#field_access, &#name_str, #tooltip, read_only || #read_only, ui);
+				});
+			}
+		};
+	} else if let Some(file) = &attrs.file {
+		let filters: Vec<proc_macro2::TokenStream> = file.filter.iter().map(|e| {
+			let lit = syn::LitStr::new(e, proc_macro2::Span::call_site());
+			quote! { #lit }
+		}).collect();
+		return quote_spanned! {field.span() => {
+				ui.scope(|ui| {
+					egui_field_editor::add_path(#field_access, &#name_str, #tooltip, read_only || #read_only, vec![#(#filters),*], ui);
 				});
 			}
 		};

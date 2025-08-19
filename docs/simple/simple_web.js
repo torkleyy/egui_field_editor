@@ -203,7 +203,7 @@ export function main() {
 }
 
 function __wbg_adapter_30(arg0, arg1, arg2) {
-    wasm.closure266_externref_shim(arg0, arg1, arg2);
+    wasm.closure265_externref_shim(arg0, arg1, arg2);
 }
 
 function takeFromExternrefTable0(idx) {
@@ -219,7 +219,7 @@ function __wbg_adapter_35(arg0, arg1) {
 }
 
 function __wbg_adapter_38(arg0, arg1, arg2) {
-    wasm.closure319_externref_shim(arg0, arg1, arg2);
+    wasm.closure318_externref_shim(arg0, arg1, arg2);
 }
 
 const __wbindgen_enum_ResizeObserverBoxOptions = ["border-box", "content-box", "device-pixel-content-box"];
@@ -1448,20 +1448,20 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper824 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 267, __wbg_adapter_30);
+    imports.wbg.__wbindgen_closure_wrapper812 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 266, __wbg_adapter_30);
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper826 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 267, __wbg_adapter_30);
+    imports.wbg.__wbindgen_closure_wrapper814 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 266, __wbg_adapter_30);
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper828 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 267, __wbg_adapter_35);
+    imports.wbg.__wbindgen_closure_wrapper816 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 266, __wbg_adapter_35);
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper962 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 320, __wbg_adapter_38);
+    imports.wbg.__wbindgen_closure_wrapper950 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 319, __wbg_adapter_38);
         return ret;
     };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {

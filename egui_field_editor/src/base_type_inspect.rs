@@ -271,8 +271,8 @@ impl<T : EguiInspect> crate::EguiInspect for Option<T>
 		};
 		let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 		let available_width = ui.available_width();
-		let label_width = available_width * 0.2;
-		let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
+		let label_width = available_width * 0.4;
+		let field_width = 100.0f32.max(available_width * 0.6 - 15.0);
 
 		ui.horizontal(|ui| {
 			let r = ui.add_sized(

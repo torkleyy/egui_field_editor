@@ -294,8 +294,8 @@ fn get_code_for_enum(enum_name: &Ident, data_enum: &DataEnum) -> TokenStream {
 				#[allow(unused_variables)]
 				let parent_id = if _parent_id == egui::Id::NULL { egui::Id::NULL } else { id };
 				let available_width = ui.available_width();
-				let label_width = available_width * 0.2;
-				let field_width = 100.0f32.max(available_width * 0.8 - 10.0);
+				let label_width = available_width * 0.4;
+				let field_width = 100.0f32.max(available_width * 0.6 - 15.0);
 
 				ui.horizontal(|ui| {
 					let r = ui.add_sized(
